@@ -4,25 +4,41 @@ using System.Collections.Generic;
 using System.Linq;
 
 public class KZLight : MonoBehaviour {
-    public float distance = 5;
+    public float distance = 10;
     public GameObject[] targets;
+    public Vector3 lightPosition;
     public float angle = 0, view = 60;
     public bool debug = true;
+    private Mesh mesh;
+    private GameObject light;
+    private List<Vector3> hits = new List<Vector3>();
+    private Vector3 lastHit;
 
     public void Start() {
+        light = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        light.name = "Light";
+        Material lightMaterial = 
+                Resources.Load("Light", typeof(Material)) as Material;
+        light.renderer.material = lightMaterial;
+        mesh = light.GetComponent<MeshFilter>().mesh;
+        mesh.MarkDynamic();
     }
     public void Update() {
-    }
-    public void FixedUpdate() {
-        Vector3 source = transform.position;
+        light.transform.position = lightPosition;
+        Vector3 source = light.transform.position;
         List<Vector3> hits = Shoot(source, angle, view);
-        Mesh mesh = CreateLightMesh(source, hits);
-        //GetComponent<MeshFilter>().mesh = mesh;
+        UpdateLightMesh(source, hits, mesh);
         //FindShadow();
     }
+    public void FixedUpdate() {
+    }
 
-    public Mesh CreateLightMesh(Vector3 source, List<Vector3> hits) {
-        if(hits.Count <= 0) return null;
+    public void UpdateLightMesh(Vector3 source, List<Vector3> hits, Mesh mesh) {
+//Debug.DrawRay(Camera.main.transform.position, source - Camera.main.transform.position, Color.red);
+        if(hits.Count <= 0) {
+            Debug.Log("what?");
+            return;
+        }
         if(debug) {
             Vector3 from = hits[0];
             for(int i=1; i<hits.Count; i++) {            
@@ -38,11 +54,12 @@ public class KZLight : MonoBehaviour {
 
         //[ vertices
         Vector3[] vertices = new Vector3[hits.Count + 1];
-        vertices[0] = source;
+        vertices[0] = Vector3.zero;
         for(int i=1; i<vertices.Length; i++) {
             vertices[i] = hits[i-1] - source;
         }
-        Mesh mesh = new Mesh();
+        mesh.Clear();
+        //Mesh mesh = new Mesh();
         mesh.vertices = vertices;
 
         //[ triangles
@@ -73,16 +90,15 @@ for(int i=0; i<triangles.Length; i++) {
         Vector2[] uvs = new Vector2[vertices.Length];
         Bounds bounds = mesh.bounds;
         for(int i=0; i<uvs.Length; i++) {
-            //uvs[i] = new Vector2(
-            //        (bounds.size.x - vertices[i].x) / bounds.size.x,
-            //        (bounds.size.y - vertices[i].y) / bounds.size.y);
-            uvs[i] = Vector2.zero;
+            uvs[i] = new Vector2(
+                    (bounds.size.x - vertices[i].x) / bounds.size.x,
+                    (bounds.size.y - vertices[i].y) / bounds.size.y);
+            //uvs[i] = Vector2.zero;
         }
         mesh.uv = uvs;
-        //mesh.RecalculateBounds();
-        //mesh.Optimize();
-        
-        return mesh; 
+        //mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        mesh.Optimize();
     }
 
     public List<Vector3> Shoot(Vector3 source, float angleDeg, float viewDeg) {
@@ -93,26 +109,27 @@ for(int i=0; i<triangles.Length; i++) {
         float end = angle + view * .5f;
     */
     
-        List<Vector3> hits = new List<Vector3>();
+        ClearHits();
         RaycastHit hit;
 
         for(int i = 0; i<targets.Length; i++) {
             GameObject o = targets[i];
+            Transform t = o.transform;
+            Collider c = o.collider;
             Mesh mesh = GetMesh(o);
             Vector3[] vertices = mesh.vertices;
             for(int j=0; j<vertices.Length; j++) {
-                Vector3 v = o.transform.TransformPoint(vertices[j] * 1.0001f);
+                Vector3 v = t.TransformPoint(vertices[j] * 1.001f);
                 Vector3 v2 = new Vector3(v.x, v.y, source.z);
                 if(Physics.Raycast(source, v2 - source, out hit, distance)) {
 if(debug) Debug.DrawRay(source, hit.point - source, Color.green);
-                    hits.Add(hit.point);
+                    AddHit(hit.point);
                 }
-
-                v = o.transform.TransformPoint(vertices[j] * 0.9999f);
+                v = o.transform.TransformPoint(vertices[j] * 0.999f);
                 v2 = new Vector3(v.x, v.y, source.z);
                 if(Physics.Raycast(source, v2 - source, out hit, distance)) {
 if(debug) Debug.DrawRay(source, hit.point - source, Color.green);
-                    hits.Add(hit.point);
+                    AddHit(hit.point);
                 }
             }
         }
@@ -136,13 +153,29 @@ if(debug) Debug.DrawRay(source, hit.point - source, Color.green);
 
         //hits.RemoveAll(x => !IsVisible(x - source, start, end));
 */
-        hits = hits.Distinct().ToList();
+        //hits = hits.Distinct().ToList();
         //hits.Sort(
         //        (a, b) => 
         //        (GetAngle(a - source) - GetAngle(b - source)) >= 0? 1: -1) ;
-        hits = hits.OrderBy(x => GetAngle(x - source)).ToList();
+        hits = hits.OrderBy(x => -GetAngle(x - source)).ToList();
 
         return hits;
+    }
+
+    private void ClearHits() {
+        lastHit = Vector3.zero;
+        hits.Clear();
+    }
+    private void AddHit(Vector3 h) {
+        if(! Similar(h, lastHit, lightPosition, 0.001f)) {
+            hits.Add(h);
+            lastHit = h;
+        } else {
+            //Debug.Log("omit "+h);
+        }
+    }
+    private bool Similar(Vector3 a, Vector3 b, Vector3 source, float err) {
+        return Vector3.Angle(a - source, b - source) < err;
     }
 
     private Mesh GetMesh(GameObject o) {
