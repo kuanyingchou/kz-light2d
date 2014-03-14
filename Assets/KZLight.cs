@@ -26,7 +26,7 @@ public class KZLight : MonoBehaviour {
         //Debug.Log(Mathf.PI);
         //if(debug) UnitTest();
     }
-    public void Update() {
+    public void LateUpdate() {
         light.transform.position = transform.position;
         Vector3 lightSource = light.transform.position;
         List<Vector3> hits = Flash(lightSource, direction, angleOfView);
@@ -71,20 +71,22 @@ public class KZLight : MonoBehaviour {
             Mesh mesh = GetMesh(o);
             Vector3[] vertices = mesh.vertices;
             for(int j=0; j<vertices.Length; j++) {
-                Vector3 vv = vertices[j];
-                Vector3 ov = t.TransformPoint(vv);
-                Vector3 ov2 = new Vector3(ov.x, ov.y, lightSource.z);
-                Vector3 v = t.TransformPoint(new Vector3(
-                        vv.x * scale, vv.y * scale, 0));
-                Vector3 v2 = new Vector3(v.x, v.y, lightSource.z);
+                Vector3 v = vertices[j];
+                Vector3 worldV = t.TransformPoint(v);
+                Vector3 worldV2 = new Vector3(worldV.x, worldV.y, lightSource.z);
+                Vector3 scaledV = t.TransformPoint(new Vector3(
+                        v.x * scale, v.y * scale, 0));
+                Vector3 scaledV2 = 
+                        new Vector3(scaledV.x, scaledV.y, lightSource.z);
 
-                if(Physics.Raycast(lightSource, v2 - lightSource, out hit, distance)) {
+                if(Physics.Raycast(
+                        lightSource, scaledV2 - lightSource, out hit, distance)) {
 if(debug) Debug.DrawRay(lightSource, hit.point - lightSource, Color.green);
                     hits.Add(hit.point);
-                    float hm = (hit.point - lightSource).sqrMagnitude;
-                    float vm2 = (ov2 - lightSource).sqrMagnitude;
-                    if(hm > vm2) {
-                        hits.Add(ov2);
+                    float hitDistance = (hit.point - lightSource).sqrMagnitude;
+                    float verticeDistance = (worldV2 - lightSource).sqrMagnitude;
+                    if(hitDistance > verticeDistance) {
+                        hits.Add(worldV2);
                     }
                 }
 
