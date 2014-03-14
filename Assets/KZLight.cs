@@ -119,9 +119,9 @@ if(debug) Debug.DrawRay(lightSource, hit.point - lightSource, Color.green);
                 Debug.DrawLine(from, to, Color.red);
                 from = to;
             }
-            if(hits.Count > 1) {
-                Debug.DrawLine(hits[hits.Count -1], hits[0], Color.red);
-            }
+            //if(hits.Count > 1) {
+            //    Debug.DrawLine(hits[hits.Count -1], hits[0], Color.red);
+            //}
         }
 
         //[ vertices
@@ -170,7 +170,7 @@ for(int i=0; i<triangles.Length; i++) {
         mesh.uv = uvs;
 */
         //mesh.RecalculateNormals();
-        mesh.RecalculateBounds();
+        //mesh.RecalculateBounds();
         mesh.Optimize();
     }
 
