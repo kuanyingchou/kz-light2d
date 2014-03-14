@@ -6,31 +6,72 @@ using System.Linq;
 public class KZLight : MonoBehaviour {
     public float distance = 10;
     public GameObject[] targets;
-    public float direction = 0, angleOfView = 60;
+    public float direction = 0; 
+    [Range(0, 180)]
+    public float angleOfView = 60;
     public bool debug = true;
-    private Mesh mesh;
-    private GameObject light;
+    private Mesh[] mesh;
+    private GameObject[] light;
     private List<Vector3> hits = new List<Vector3>();
     private Vector3 lastHit;
-    private float scale = 1.01f;
+    [Range(0.5f, 1.5f)]
+    public float scale = 1.01f;
+
+    [Range(1, 50)]
+    public int num = 20;
+
+    [Range(0, 10)]
+    public float dist = .5f;
+    public bool dynamic = true;
 
     public void Start() {
-        light = GameObject.CreatePrimitive(PrimitiveType.Quad);
-        light.name = "Light";
-        light.transform.position = transform.position;
-        Material lightMaterial =
-                Resources.Load("Light", typeof(Material)) as Material;
-        light.renderer.material = lightMaterial;
-        mesh = light.GetComponent<MeshFilter>().mesh;
-        mesh.MarkDynamic();
+        Init();
         //Debug.Log(Mathf.PI);
         //if(debug) UnitTest();
     }
+    private void Init() {
+        if(light != null) {
+            for(int i=0; i<light.Length; i++) {
+                GameObject.DestroyImmediate(light[i]);
+            }
+        }
+        light = new GameObject[num];
+        mesh = new Mesh[num];
+        for(int i=0; i<num; i++) {
+            light[i] = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            light[i].name = "Light-"+i;
+            light[i].transform.position = transform.position;
+            Material lightMaterial =
+                    Resources.Load("Light", typeof(Material)) as Material;
+            light[i].renderer.material = lightMaterial;
+            mesh[i] = light[i].GetComponent<MeshFilter>().mesh;
+            mesh[i].MarkDynamic();
+        }
+        SetLightPositions(transform.position);
+    }
+    private void SetLightPositions(Vector3 center) {
+        if(num == 1) {
+            light[0].transform.position = center;
+        } else {
+            float angle = 0;
+            for(int i=0; i<num; i++) {
+                Vector3 pos = new Vector3(
+                        Mathf.Cos(angle), 
+                        Mathf.Sin(angle), 
+                        transform.position.z) * dist;
+                light[i].transform.position = center + pos;
+                angle += TWO_PI / num;
+            }
+        }
+        
+    }
     public void LateUpdate() {
-        light.transform.position = transform.position;
-        Vector3 lightSource = light.transform.position;
-        List<Vector3> hits = Flash(lightSource, direction, angleOfView);
-        UpdateLightMesh(lightSource, hits, mesh);
+        if(dynamic) Init();
+        for(int i=0; i<num; i++) {
+            Vector3 lightSource = light[i].transform.position;
+            List<Vector3> hits = Flash(lightSource, direction, angleOfView);
+            UpdateLightMesh(lightSource, hits, mesh[i]);
+        }
         //FindShadow();
     }
     public void FixedUpdate() {

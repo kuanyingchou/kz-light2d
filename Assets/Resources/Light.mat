@@ -17,7 +17,7 @@ Material:
         first:
           name: _MainTex
         second:
-          m_Texture: {fileID: 0}
+          m_Texture: {fileID: 2800000, guid: 048f3f53edbe28d45b10ae10e9a4e1d7, type: 3}
           m_Scale: {x: 1, y: 1}
           m_Offset: {x: 0, y: 0}
       data:
@@ -43,11 +43,19 @@ Material:
         first:
           name: _Parallax
         second: .0199999996
+      data:
+        first:
+          name: _BumpAmt
+        second: 46.5714302
+      data:
+        first:
+          name: _Size
+        second: 6.71428585
     m_Colors:
       data:
         first:
           name: _Color
-        second: {r: .95588237, g: .936881065, b: .857482731, a: .725490212}
+        second: {r: .985294104, g: .951718152, b: .811418653, a: .0862745121}
       data:
         first:
           name: _SpecColor
