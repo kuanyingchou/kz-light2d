@@ -37,6 +37,18 @@ Material:
     m_Floats:
       data:
         first:
+          name: _Cutoff
+        second: .5
+      data:
+        first:
+          name: PixelSnap
+        second: 0
+      data:
+        first:
+          name: _InvFade
+        second: 1
+      data:
+        first:
           name: _Shininess
         second: .699999988
       data:
@@ -55,7 +67,7 @@ Material:
       data:
         first:
           name: _Color
-        second: {r: .985294104, g: .951718152, b: .811418653, a: .0862745121}
+        second: {r: .985294104, g: .951718152, b: .811418653, a: .125490203}
       data:
         first:
           name: _SpecColor
@@ -64,3 +76,11 @@ Material:
         first:
           name: _Emission
         second: {r: 0, g: 0, b: 0, a: 0}
+      data:
+        first:
+          name: _EmisColor
+        second: {r: .200000003, g: .200000003, b: .200000003, a: 0}
+      data:
+        first:
+          name: _TintColor
+        second: {r: .5, g: .5, b: .5, a: .5}

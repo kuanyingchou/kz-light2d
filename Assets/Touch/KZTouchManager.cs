@@ -82,7 +82,7 @@ public class KZTouchManager : MonoBehaviour {
         records=new Dictionary<int, TouchRecord>();
     }
     
-    void Update () {
+    void FixedUpdate () {
         
         //Debug.Log ("Length: "+Input.touches.Length);
         KZInput.UpdateTouches();
