@@ -4,28 +4,36 @@ using System.Collections.Generic;
 using System.Linq;
 
 public class KZLight : MonoBehaviour {
-    public float range = 10;
-    public GameObject[] targets;
-    public float direction = 0; 
-    [Range(0, 180)]
-    public float angleOfView = 60;
     public bool debug = true;
+    public bool dynamicUpdate = false;
+
+    public float range = 10; 
+    [Range(-180, 180)] 
+    public float direction = 0; 
+    [Range(0, 180)] 
+    public float angleOfView = 60;
+    [Range(1, 1000)]
+    public int numberOfRays = 500;
+    public Material lightMaterial;
+
+    public GameObject[] targets; 
+
+    //[Range(0.5f, 1.5f)]
+    //public float scale = 1.01f;
+
+    [Range(1, 50)]
+    public int numberOfDuplicates = 1;
+    private int oldNumberOfDuplicates;
+
+    [Range(0, 10)]
+    public float duplicateDiff = .5f;
+    public float duplicateZDiff = .1f;
+
+    //[ private 
     private Mesh[] mesh;
     private GameObject[] light;
     private List<Vector3> hits = new List<Vector3>();
-    private Vector3 lastHit;
-    [Range(0.5f, 1.5f)]
-    public float scale = 1.01f;
-
-    [Range(1, 50)]
-    public int numberOfLights = 1;
-    private int oldNumberOfLights;
-
-    [Range(0, 10)]
-    public float radius = .5f;
-    public bool dynamicUpdate = false;
-    public float zGap = .1f;
-    public Material lightMaterial;
+    //] 
 
     public void Start() {
         if(lightMaterial == null) {
@@ -37,46 +45,46 @@ public class KZLight : MonoBehaviour {
         //if(debug) UnitTest();
     }
     private void Init() {
-        if(oldNumberOfLights != numberOfLights) {
+        if(oldNumberOfDuplicates != numberOfDuplicates) {
             if(light != null) {
                 for(int i=0; i<light.Length; i++) {
                     GameObject.DestroyImmediate(light[i]);
                 }
             }
-            light = new GameObject[numberOfLights];
-            mesh = new Mesh[numberOfLights];
-            for(int i=0; i<numberOfLights; i++) {
+            light = new GameObject[numberOfDuplicates];
+            mesh = new Mesh[numberOfDuplicates];
+            for(int i=0; i<numberOfDuplicates; i++) {
                 light[i] = GameObject.CreatePrimitive(PrimitiveType.Quad);
                 light[i].name = "Light-"+i;
-                light[i].transform.position = transform.position;
                 light[i].transform.parent = transform;
                 light[i].renderer.material = lightMaterial;
                 mesh[i] = light[i].GetComponent<MeshFilter>().mesh;
                 mesh[i].MarkDynamic();
             }
-            oldNumberOfLights = numberOfLights;
+            oldNumberOfDuplicates = numberOfDuplicates;
         }
         SetLightPositions();
     }
     private void SetLightPositions() {
-        if(numberOfLights == 1) {
+        if(numberOfDuplicates == 1) {
             light[0].transform.localPosition = Vector3.zero;
         } else {
             float angle = 0;
-            for(int i=0; i<numberOfLights; i++) {
+            for(int i=0; i<numberOfDuplicates; i++) {
                 Vector3 diff = new Vector3(
                         Mathf.Cos(angle), 
                         Mathf.Sin(angle), 
-                        transform.position.z + zGap * i) * radius;
-                light[i].transform.position = diff;
-                angle += TWO_PI / numberOfLights;
+                        transform.position.z + duplicateZDiff * i) * 
+                        duplicateDiff;
+                light[i].transform.localPosition = diff;
+                angle += TWO_PI / numberOfDuplicates;
             }
         }
         
     }
     public void LateUpdate() {
         if(dynamicUpdate) Init();
-        for(int i=0; i<numberOfLights; i++) {
+        for(int i=0; i<numberOfDuplicates; i++) {
             Vector3 lightSource = light[i].transform.position;
             List<Vector3> hits = Flash(lightSource, direction, angleOfView);
             UpdateLightMesh(lightSource, hits, mesh[i]);
@@ -86,7 +94,8 @@ public class KZLight : MonoBehaviour {
     public void FixedUpdate() {
     }
 
-    public List<Vector3> Flash(Vector3 lightSource, float angleDeg, float viewDeg) {
+    public List<Vector3> Flash(Vector3 lightSource, float angleDeg, 
+            float viewDeg) {
         hits.Clear();
         RaycastHit hit;
 
@@ -95,63 +104,19 @@ public class KZLight : MonoBehaviour {
         float start = angleRad - viewRad * .5f;
         float end = angleRad + viewRad * .5f;
 
-        Vector3 dir = new Vector3(
-                Mathf.Cos(angleRad), Mathf.Sin(angleRad), 0);
-
-        Vector3 startDir = new Vector3(
-                Mathf.Cos(start), Mathf.Sin(start), 0);
-        if(Physics.Raycast(lightSource, startDir, out hit, range)) {
-            hits.Add(hit.point);
-        } else {
-            hits.Add(lightSource + startDir * range);
-        }
-
-        Vector3 endDir = new Vector3(
-                Mathf.Cos(end), Mathf.Sin(end), 0);
-        if(Physics.Raycast(lightSource, endDir, out hit, range)) {
-            hits.Add(hit.point);
-        } else {
-            hits.Add(lightSource + endDir * range);
-        }
-
-        for(int i = 0; i<targets.Length; i++) {
-            GameObject o = targets[i];
-            Transform t = o.transform;
-            Collider c = o.collider;
-            Mesh mesh = GetMesh(o);
-            Vector3[] vertices = mesh.vertices;
-            for(int j=0; j<vertices.Length; j++) {
-                Vector3 v = vertices[j];
-                Vector3 worldV = t.TransformPoint(v);
-                Vector3 worldV2 = new Vector3(worldV.x, worldV.y, lightSource.z);
-                Vector3 scaledV = t.TransformPoint(new Vector3(
-                        v.x * scale, v.y * scale, 0));
-                Vector3 scaledV2 = 
-                        new Vector3(scaledV.x, scaledV.y, lightSource.z);
-
-                if(Physics.Raycast(
-                        lightSource, scaledV2 - lightSource, out hit, range)) {
+        float angle = start;
+        for(int i=0; i<numberOfRays; i++) {
+            Vector3 d= new Vector3(
+                    Mathf.Cos(angle), 
+                    Mathf.Sin(angle), 
+                    0);
+            if(Physics.Raycast(lightSource, d, out hit, range)) {
 if(debug) Debug.DrawRay(lightSource, hit.point - lightSource, Color.green);
                     hits.Add(hit.point);
-                    float hitDistance = (hit.point - lightSource).sqrMagnitude;
-                    float verticeDistance = (worldV2 - lightSource).sqrMagnitude;
-                    if(hitDistance > verticeDistance) {
-                        hits.Add(worldV2);
-                    }
-                }
-
             }
+            angle += viewRad / numberOfRays;
         }
 
-
-        hits.RemoveAll(x => !IsVisible(x - lightSource, dir, viewDeg));
-        //hits = hits.Distinct().ToList();
-        //hits.Sort((a, b) => 
-        //        Vector3.Angle(a - lightSource, startDir) >
-        //        Vector3.Angle(b - lightSource, startDir) ? 
-        //        1: -1);
-        hits = hits.OrderBy(
-                x => Vector3.Angle(x - lightSource, startDir)).ToList();
         return hits;
     }
 
@@ -174,14 +139,14 @@ if(debug) Debug.DrawRay(lightSource, hit.point - lightSource, Color.green);
             //}
         }
 
+        mesh.Clear();
+
         //[ vertices
         Vector3[] vertices = new Vector3[hits.Count + 1];
         vertices[0] = Vector3.zero;
         for(int i=1; i<vertices.Length; i++) {
             vertices[i] = hits[i-1] - lightSource;
         }
-        mesh.Clear();
-        //Mesh mesh = new Mesh();
         mesh.vertices = vertices;
 
         //[ triangles
