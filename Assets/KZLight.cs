@@ -7,12 +7,14 @@ public class KZLight : MonoBehaviour {
     public bool debug = true;
     public bool dynamicUpdate = false;
 
-    public float range = 10; 
     [Range(-180, 180)] 
     public float direction = 0; 
     [Range(0, 180)] 
     public float angleOfView = 60;
+    public Color color = new Color(255, 255, 255, 32);
+    private Color oldColor;
     [Range(1, 1000)]
+    public float range = 10; 
     public int numberOfRays = 500;
     public Material lightMaterial;
 
@@ -31,6 +33,9 @@ public class KZLight : MonoBehaviour {
 
     //[ private 
     private static float TWO_PI = Mathf.PI * 2;
+    private static string DEFAULT_MATERIAL = 
+            "Custom/TransparentSingleColorShader";
+            //"Particles/Additive";
     private Mesh[] mesh;
     private GameObject[] light;
     private List<Vector3> hits = new List<Vector3>();
@@ -38,7 +43,7 @@ public class KZLight : MonoBehaviour {
 
     public void Start() {
         if(lightMaterial == null) {
-            LoadDefaultMaterial();
+            lightMaterial = CreateLightMaterial();
         }
         UpdateLights();
         //Debug.Log(Mathf.PI);
@@ -57,14 +62,17 @@ public class KZLight : MonoBehaviour {
 
     //[ private
 
-    private void LoadDefaultMaterial() {
-        lightMaterial = Resources.Load("Light", typeof(Material)) 
-                as Material;
+    private Material CreateLightMaterial() {
+        return new Material(Shader.Find(DEFAULT_MATERIAL));
     }
 
     private void UpdateLights() {
         if(oldNumberOfDuplicates != numberOfDuplicates) {
             Initialize();
+        }
+        if(oldColor != color) {
+            lightMaterial.color = color;
+            oldColor = color;
         }
         SetLightPositions();
     }
