@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 public class KZLight : MonoBehaviour {
-    public float distance = 10;
+    public float range = 10;
     public GameObject[] targets;
     public float direction = 0; 
     [Range(0, 180)]
@@ -18,56 +18,65 @@ public class KZLight : MonoBehaviour {
     public float scale = 1.01f;
 
     [Range(1, 50)]
-    public int num = 20;
+    public int numberOfLights = 1;
+    private int oldNumberOfLights;
 
     [Range(0, 10)]
-    public float dist = .5f;
-    public bool dynamic = true;
+    public float radius = .5f;
+    public bool dynamicUpdate = false;
+    public float zGap = .1f;
+    public Material lightMaterial;
 
     public void Start() {
+        if(lightMaterial == null) {
+            lightMaterial = Resources.Load("Light", typeof(Material)) 
+                    as Material;
+        }
         Init();
         //Debug.Log(Mathf.PI);
         //if(debug) UnitTest();
     }
     private void Init() {
-        if(light != null) {
-            for(int i=0; i<light.Length; i++) {
-                GameObject.DestroyImmediate(light[i]);
+        if(oldNumberOfLights != numberOfLights) {
+            if(light != null) {
+                for(int i=0; i<light.Length; i++) {
+                    GameObject.DestroyImmediate(light[i]);
+                }
             }
+            light = new GameObject[numberOfLights];
+            mesh = new Mesh[numberOfLights];
+            for(int i=0; i<numberOfLights; i++) {
+                light[i] = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                light[i].name = "Light-"+i;
+                light[i].transform.position = transform.position;
+                light[i].transform.parent = transform;
+                light[i].renderer.material = lightMaterial;
+                mesh[i] = light[i].GetComponent<MeshFilter>().mesh;
+                mesh[i].MarkDynamic();
+            }
+            oldNumberOfLights = numberOfLights;
         }
-        light = new GameObject[num];
-        mesh = new Mesh[num];
-        for(int i=0; i<num; i++) {
-            light[i] = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            light[i].name = "Light-"+i;
-            light[i].transform.position = transform.position;
-            Material lightMaterial =
-                    Resources.Load("Light", typeof(Material)) as Material;
-            light[i].renderer.material = lightMaterial;
-            mesh[i] = light[i].GetComponent<MeshFilter>().mesh;
-            mesh[i].MarkDynamic();
-        }
-        SetLightPositions(transform.position);
+        SetLightPositions();
     }
-    private void SetLightPositions(Vector3 center) {
-        if(num == 1) {
-            light[0].transform.position = center;
+    private void SetLightPositions() {
+        if(numberOfLights == 1) {
+            light[0].transform.localPosition = Vector3.zero;
         } else {
             float angle = 0;
-            for(int i=0; i<num; i++) {
-                Vector3 pos = new Vector3(
+            for(int i=0; i<numberOfLights; i++) {
+                Vector3 diff = new Vector3(
                         Mathf.Cos(angle), 
                         Mathf.Sin(angle), 
-                        transform.position.z) * dist;
-                light[i].transform.position = center + pos;
-                angle += TWO_PI / num;
+                        transform.position.z + zGap * i) * radius;
+                light[i].transform.position = diff;
+                angle += TWO_PI / numberOfLights;
             }
         }
         
     }
     public void LateUpdate() {
-        if(dynamic) Init();
-        for(int i=0; i<num; i++) {
+        if(dynamicUpdate) Init();
+        for(int i=0; i<numberOfLights; i++) {
             Vector3 lightSource = light[i].transform.position;
             List<Vector3> hits = Flash(lightSource, direction, angleOfView);
             UpdateLightMesh(lightSource, hits, mesh[i]);
@@ -91,18 +100,18 @@ public class KZLight : MonoBehaviour {
 
         Vector3 startDir = new Vector3(
                 Mathf.Cos(start), Mathf.Sin(start), 0);
-        if(Physics.Raycast(lightSource, startDir, out hit, distance)) {
+        if(Physics.Raycast(lightSource, startDir, out hit, range)) {
             hits.Add(hit.point);
         } else {
-            hits.Add(lightSource + startDir * distance);
+            hits.Add(lightSource + startDir * range);
         }
 
         Vector3 endDir = new Vector3(
                 Mathf.Cos(end), Mathf.Sin(end), 0);
-        if(Physics.Raycast(lightSource, endDir, out hit, distance)) {
+        if(Physics.Raycast(lightSource, endDir, out hit, range)) {
             hits.Add(hit.point);
         } else {
-            hits.Add(lightSource + endDir * distance);
+            hits.Add(lightSource + endDir * range);
         }
 
         for(int i = 0; i<targets.Length; i++) {
@@ -121,7 +130,7 @@ public class KZLight : MonoBehaviour {
                         new Vector3(scaledV.x, scaledV.y, lightSource.z);
 
                 if(Physics.Raycast(
-                        lightSource, scaledV2 - lightSource, out hit, distance)) {
+                        lightSource, scaledV2 - lightSource, out hit, range)) {
 if(debug) Debug.DrawRay(lightSource, hit.point - lightSource, Color.green);
                     hits.Add(hit.point);
                     float hitDistance = (hit.point - lightSource).sqrMagnitude;
