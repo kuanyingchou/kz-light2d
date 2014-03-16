@@ -9,8 +9,10 @@ Shader "Custom/TransparentSingleColorShader" {
     Blend SrcAlpha OneMinusSrcAlpha
     Cull Off
     LOD 200
+    //[ added by ken, 2014.3.15
     ZWrite Off // don't write to depth buffer 
     Blend SrcAlpha One // additive blending
+    //]
 
     CGPROGRAM
     #pragma surface surf Lambert
