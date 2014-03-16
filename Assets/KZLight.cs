@@ -34,6 +34,7 @@ public class KZLight : MonoBehaviour {
     //[ private 
     private static float TWO_PI = Mathf.PI * 2;
     private static string DEFAULT_MATERIAL = 
+            //"Unlit/Transparent";
             "Custom/TransparentSingleColorShader";
             //"Particles/Additive";
     private Mesh[] mesh;
@@ -134,7 +135,9 @@ public class KZLight : MonoBehaviour {
                     Mathf.Sin(angle), 
                     0);
             if(Physics.Raycast(lightSource, d, out hit, range)) {
-                    hits.Add(hit.point);
+                hits.Add(hit.point);
+            } else {
+                hits.Add(lightSource + d*range);
             }
             angle += viewRad / numberOfRays;
         }
