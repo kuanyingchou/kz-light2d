@@ -134,13 +134,41 @@ public class KZLight : MonoBehaviour {
                     Mathf.Sin(angle), 
                     0);
             if(Physics.Raycast(lightSource, d, out hit, range)) {
-if(debug) Debug.DrawRay(lightSource, hit.point - lightSource, Color.green);
                     hits.Add(hit.point);
             }
             angle += viewRad / numberOfRays;
         }
 
+        hits = SimplifyHits(hits); 
+
+        if(debug) DrawHits(lightSource, hits);
+
         return hits;
+    }
+
+    private void DrawHits(Vector3 lightSource, List<Vector3> hits) {
+        for(int i=0; i<hits.Count; i++) {
+            Debug.DrawRay(lightSource, hits[i] - lightSource, Color.green);
+        }
+    }
+
+    //>>> didn't see much improvement, just moved burden from gpu to cpu
+    private List<Vector3> SimplifyHits(List<Vector3> hits) {
+        List<Vector3> reducedHits = new List<Vector3>();
+        if(hits.Count > 2) {
+            reducedHits.Add(hits[0]);
+            reducedHits.Add(hits[1]);
+            Vector3 last = hits[1] - hits[0];
+            for(int i=2; i<hits.Count; i++) {
+                Vector3 diff = hits[i] - hits[i-1];
+                if(Similar(Vector3.Angle(diff, last), 0, 0.001f)) {
+                    reducedHits.RemoveAt(reducedHits.Count - 1);
+                }
+                reducedHits.Add(hits[i]);
+                last = diff;
+            }
+        }
+        return reducedHits;
     }
 
     private void UpdateLightMesh(
@@ -224,7 +252,13 @@ if(debug) Debug.DrawRay(lightSource, hit.point - lightSource, Color.green);
 
 
     //[ utilities
+    private float GetAngle(Vector3 dir) {
+        return Mathf.Atan2(dir.y, dir.x);
+    }
 
+    private bool Similar(float a, float b, float err) {
+        return Mathf.Abs(a - b) < err;
+    }
 /*
     private bool Similar(Vector3 a, Vector3 b, Vector3 lightSource, float err) {
         return Vector3.Angle(a - lightSource, b - lightSource) < err;
@@ -232,12 +266,6 @@ if(debug) Debug.DrawRay(lightSource, hit.point - lightSource, Color.green);
 
     private Mesh GetMesh(GameObject o) {
         return o.GetComponent<MeshFilter>().mesh;
-    }
-    private float GetAngle(Vector3 dir) {
-        float angle = Mathf.Atan2(dir.y, dir.x);
-        //Debug.Log(angle);
-        return angle;
-        //return GetRadIn2PI(angle);
     }
 
     private int CompareAngle(float a, float b) {
