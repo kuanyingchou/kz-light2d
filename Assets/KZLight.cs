@@ -33,13 +33,13 @@ public class KZLight : MonoBehaviour {
 
     //[ private 
     private static float TWO_PI = Mathf.PI * 2;
-    private static string DEFAULT_MATERIAL = 
-            //"Unlit/Transparent";
-            "Custom/TransparentSingleColorShader";
+    private static string DEFAULT_SHADER = 
+            "Unlit/Transparent";
+            //"Custom/TransparentSingleColorShader";
             //"Particles/Additive";
     private Mesh[] mesh;
     private GameObject[] light;
-    private List<Vector3> hits = new List<Vector3>();
+    private List<RaycastHit> hits = new List<RaycastHit>();
     //] 
 
     public void Start() {
@@ -54,7 +54,7 @@ public class KZLight : MonoBehaviour {
         if(dynamicUpdate) UpdateLights();
         for(int i=0; i<numberOfDuplicates; i++) {
             Vector3 pos = light[i].transform.position;
-            List<Vector3> hits = Shed(pos, direction, angleOfView);
+            List<RaycastHit> hits = Shed(pos, direction, angleOfView);
             UpdateLightMesh(mesh[i], pos, hits);
         }
     }
@@ -64,7 +64,14 @@ public class KZLight : MonoBehaviour {
     //[ private
 
     private Material CreateLightMaterial() {
-        return new Material(Shader.Find(DEFAULT_MATERIAL));
+        Texture2D texture = new Texture2D(256, 1);
+        for(int x=0; x<texture.width; x++) {
+            texture.SetPixel(x, 0, new Color(255, 255, 255, 255-x));
+        }
+        texture.Apply();
+        Material material = new Material(Shader.Find(DEFAULT_SHADER));
+        material.mainTexture = texture;
+        return material;
     }
 
     private void UpdateLights() {
@@ -118,9 +125,10 @@ public class KZLight : MonoBehaviour {
         }
     }
 
-    private List<Vector3> Shed(
+    private List<RaycastHit> Shed(
             Vector3 lightSource, float angleDeg, float viewDeg) {
         hits.Clear();
+
         RaycastHit hit;
 
         float angleRad = angleDeg * Mathf.Deg2Rad;
@@ -135,9 +143,12 @@ public class KZLight : MonoBehaviour {
                     Mathf.Sin(angle), 
                     0);
             if(Physics.Raycast(lightSource, d, out hit, range)) {
-                hits.Add(hit.point);
+                hits.Add(hit);
             } else {
-                hits.Add(lightSource + d*range);
+                RaycastHit h = new RaycastHit();
+                h.point = lightSource + d*range;
+                h.distance = range;
+                hits.Add(h);
             }
             angle += viewRad / numberOfRays;
         }
@@ -146,24 +157,26 @@ public class KZLight : MonoBehaviour {
 
         if(debug) DrawHits(lightSource, hits);
 
+        hits.Reverse(); //TODO: remove this
+
         return hits;
     }
 
-    private void DrawHits(Vector3 lightSource, List<Vector3> hits) {
+    private void DrawHits(Vector3 lightSource, List<RaycastHit> hits) {
         for(int i=0; i<hits.Count; i++) {
-            Debug.DrawRay(lightSource, hits[i] - lightSource, Color.green);
+            Debug.DrawRay(lightSource, hits[i].point - lightSource, Color.green);
         }
     }
 
     //>>> didn't see much improvement, just moved burden from gpu to cpu
-    private List<Vector3> SimplifyHits(List<Vector3> hits) {
-        List<Vector3> reducedHits = new List<Vector3>();
+    private List<RaycastHit> SimplifyHits(List<RaycastHit> hits) {
+        List<RaycastHit> reducedHits = new List<RaycastHit>();
         if(hits.Count > 2) {
             reducedHits.Add(hits[0]);
             reducedHits.Add(hits[1]);
-            Vector3 last = hits[1] - hits[0];
+            Vector3 last = hits[1].point - hits[0].point;
             for(int i=2; i<hits.Count; i++) {
-                Vector3 diff = hits[i] - hits[i-1];
+                Vector3 diff = hits[i].point - hits[i-1].point;
                 if(Similar(Vector3.Angle(diff, last), 0, 0.001f)) {
                     reducedHits.RemoveAt(reducedHits.Count - 1);
                 }
@@ -175,7 +188,7 @@ public class KZLight : MonoBehaviour {
     }
 
     private void UpdateLightMesh(
-            Mesh mesh, Vector3 pos, List<Vector3> hits) {
+            Mesh mesh, Vector3 pos, List<RaycastHit> hits) {
 //Debug.DrawRay(Camera.main.transform.position, lightSource - Camera.main.transform.position, Color.red);
         if(hits.Count <= 0) {
             Debug.Log("hits nothing!");
@@ -192,17 +205,17 @@ public class KZLight : MonoBehaviour {
         mesh.vertices = vertices;
         mesh.triangles = CreateTriangles(vertices);
         mesh.normals = CreateNormals(vertices);
-        //mesh.uv = CreateUV(mesh.bounds, vertices);
+        mesh.uv = CreateUV(vertices, hits);
 
         //mesh.RecalculateNormals();
         //mesh.RecalculateBounds();
         mesh.Optimize();
     }
 
-    private void DrawLightPolygon(List<Vector3> hits) {
-        Vector3 from = hits[0];
+    private void DrawLightPolygon(List<RaycastHit> hits) {
+        Vector3 from = hits[0].point;
         for(int i=1; i<hits.Count; i++) {
-            Vector3 to = hits[i];
+            Vector3 to = hits[i].point;
             //Debug.Log(x);
             Debug.DrawLine(from, to, Color.red);
             from = to;
@@ -212,11 +225,11 @@ public class KZLight : MonoBehaviour {
         //}
     }
 
-    private Vector3[] CreateVertices(List<Vector3> hits, Vector3 pos) {
+    private Vector3[] CreateVertices(List<RaycastHit> hits, Vector3 pos) {
         Vector3[] vertices = new Vector3[hits.Count + 1];
         vertices[0] = Vector3.zero;
         for(int i=1; i<vertices.Length; i++) {
-            vertices[i] = hits[i-1] - pos;
+            vertices[i] = hits[i-1].point - pos;
         }
         return vertices;
     }
@@ -242,13 +255,11 @@ public class KZLight : MonoBehaviour {
         return normals;
     }
 
-    private Vector2[] CreateUV(Bounds bounds, Vector3[] vertices) {
+    private Vector2[] CreateUV(Vector3[] vertices, List<RaycastHit> hits) {
         Vector2[] uvs = new Vector2[vertices.Length];
-        for(int i=0; i<uvs.Length; i++) {
-            uvs[i] = new Vector2(
-                    (bounds.size.x - vertices[i].x) / bounds.size.x,
-                    (bounds.size.y - vertices[i].y) / bounds.size.y);
-            //uvs[i] = Vector2.zero;
+        uvs[0] = Vector2.zero;
+        for(int i=1; i<uvs.Length; i++) {
+            uvs[i] = new Vector2(hits[i-1].distance / range, 0);
         }
         return uvs;
     }
