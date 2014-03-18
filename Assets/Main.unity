@@ -114,8 +114,8 @@ GameObject:
   - 4: {fileID: 270512188}
   - 33: {fileID: 270512187}
   - 23: {fileID: 270512185}
-  - 64: {fileID: 270512186}
   - 114: {fileID: 270512189}
+  - 65: {fileID: 270512186}
   m_Layer: 0
   m_Name: Cube
   m_TagString: Untagged
@@ -144,8 +144,8 @@ Renderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_SortingLayerID: 0
---- !u!64 &270512186
-MeshCollider:
+--- !u!65 &270512186
+BoxCollider:
   m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
@@ -154,9 +154,8 @@ MeshCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_SmoothSphereCollisions: 0
-  m_Convex: 1
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!33 &270512187
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -201,7 +200,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!108 &341918162
 Light:
   m_ObjectHideFlags: 0
@@ -736,10 +735,12 @@ MonoBehaviour:
   dynamicUpdate: 1
   direction: -90
   angleOfView: 90
+  wrapAngle: 4
   color: {r: 1, g: 1, b: 1, a: 1}
   range: 8
-  numberOfRays: 256
+  numberOfRays: 128
   lightMaterial: {fileID: 0}
+  iteration: 1
   alpha: .875
   numberOfDuplicates: 1
   duplicateDiff: .0299999993
@@ -751,7 +752,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1659320545}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 2.68000007, y: 2.95000005, z: 1}
+  m_LocalPosition: {x: -2.31999993, y: 2.95000005, z: 1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -786,10 +787,12 @@ MonoBehaviour:
   dynamicUpdate: 1
   direction: -90
   angleOfView: 90
+  wrapAngle: 4
   color: {r: 1, g: 1, b: 1, a: .501960814}
   range: 8
   numberOfRays: 256
   lightMaterial: {fileID: 0}
+  iteration: 5
   alpha: .200000003
   numberOfDuplicates: 6
   duplicateDiff: .0299999993
@@ -906,10 +909,12 @@ MonoBehaviour:
   dynamicUpdate: 1
   direction: -90
   angleOfView: 90
+  wrapAngle: 4
   color: {r: 0, g: 0, b: 1, a: .501960814}
   range: 8
   numberOfRays: 500
   lightMaterial: {fileID: 0}
+  iteration: 5
   alpha: .5
   numberOfDuplicates: 1
   duplicateDiff: .5

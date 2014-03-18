@@ -28,7 +28,7 @@ public class TestBlur : MonoBehaviour {
         texture.Apply();
 
         for(int i=0;i<1;i++) {
-            texture = BoxBlur.Blur(texture);
+            texture = KZTexture.BoxBlur(texture);
         }
 
         Material material = new Material(Shader.Find(DEFAULT_SHADER));
