@@ -243,7 +243,7 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 341918161}
-  m_LocalRotation: {x: .408217937, y: -.234569728, z: .109381676, w: .875426054}
+  m_LocalRotation: {x: .408217967, y: -.234569743, z: .109381683, w: .875426114}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
@@ -736,19 +736,12 @@ MonoBehaviour:
   dynamicUpdate: 1
   direction: -90
   angleOfView: 90
-  color: {r: 1, g: 1, b: 1, a: .501960814}
+  color: {r: 1, g: 1, b: 1, a: 1}
   range: 8
-  numberOfRays: 500
+  numberOfRays: 256
   lightMaterial: {fileID: 0}
-  targets:
-  - {fileID: 270512184}
-  - {fileID: 1307390464}
-  - {fileID: 1416494435}
-  - {fileID: 1776534781}
-  - {fileID: 1629649457}
-  - {fileID: 1263804586}
-  alpha: .200000003
-  numberOfDuplicates: 6
+  alpha: .875
+  numberOfDuplicates: 1
   duplicateDiff: .0299999993
   duplicateZDiff: .100000001
 --- !u!4 &1659320547
@@ -777,7 +770,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1712762475
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -795,15 +788,8 @@ MonoBehaviour:
   angleOfView: 90
   color: {r: 1, g: 1, b: 1, a: .501960814}
   range: 8
-  numberOfRays: 128
+  numberOfRays: 256
   lightMaterial: {fileID: 0}
-  targets:
-  - {fileID: 270512184}
-  - {fileID: 1307390464}
-  - {fileID: 1416494435}
-  - {fileID: 1776534781}
-  - {fileID: 1629649457}
-  - {fileID: 1263804586}
   alpha: .200000003
   numberOfDuplicates: 6
   duplicateDiff: .0299999993
@@ -924,13 +910,6 @@ MonoBehaviour:
   range: 8
   numberOfRays: 500
   lightMaterial: {fileID: 0}
-  targets:
-  - {fileID: 270512184}
-  - {fileID: 1307390464}
-  - {fileID: 1416494435}
-  - {fileID: 1776534781}
-  - {fileID: 1629649457}
-  - {fileID: 1263804586}
   alpha: .5
   numberOfDuplicates: 1
   duplicateDiff: .5

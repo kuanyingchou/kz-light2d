@@ -81,7 +81,10 @@ public class KZLight : MonoBehaviour {
         KZLight.ApplyColor(texture, color);
         KZLight.ApplyGradient(texture, alpha);
         //KZLight.ApplyPerlin(texture);
-        KZLight.ApplyBlur(texture);
+        //KZLight.ApplyBlur(texture);
+        for(int i=0; i<1; i++) {
+            texture = BoxBlur.Blur(texture);
+        }
         return texture;
     }
 
