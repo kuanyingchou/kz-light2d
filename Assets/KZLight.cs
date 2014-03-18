@@ -18,7 +18,7 @@ public class KZLight : MonoBehaviour {
     public int numberOfRays = 500;
     public Material lightMaterial;
 
-    public GameObject[] targets; 
+    //public GameObject[] targets; 
 
     [Range(0, 1)]
     public float alpha = .5f;
@@ -77,15 +77,58 @@ public class KZLight : MonoBehaviour {
     private Texture2D CreateTexture() {
         Texture2D texture = new Texture2D(
                 TEXTURE_SIZE, TEXTURE_SIZE, TextureFormat.ARGB32, false);
+
+        KZLight.ApplyColor(texture, color);
+        KZLight.ApplyGradient(texture, alpha);
+        //KZLight.ApplyPerlin(texture);
+        KZLight.ApplyBlur(texture);
+        return texture;
+    }
+
+    private static void ApplyColor(Texture2D texture, Color c) {
         for(int x=0; x<texture.width; x++) {
             for(int y=0; y<texture.height; y++) {
-                float a = alpha - ((float)y/TEXTURE_SIZE * alpha);
-                texture.SetPixel(x, y, new Color(color.r, color.g, color.b, a));
+                texture.SetPixel(x, y, c);
                 //texture.SetPixel(x, y, Color.green);
             }
         }
         texture.Apply();
-        return texture;
+    }
+
+    private static void ApplyGradient(Texture2D texture, float maxAlpha) {
+        for(int y=0; y<texture.height; y++) {
+            float a = maxAlpha - ((float)y/TEXTURE_SIZE * maxAlpha);
+            for(int x=0; x<texture.width; x++) {
+                Color c = texture.GetPixel(x, y);
+                texture.SetPixel(x, y, new Color(c.r, c.g, c.b, a));
+            }
+        }
+        texture.Apply();
+    }
+    private static void ApplyPerlin(Texture2D texture) {
+        for(int x=0; x<texture.width; x++) {
+            float perlin = Mathf.PerlinNoise(
+                        Random.Range(0, 2) + (float)x / texture.width * 6, 0);
+            for(int y=0; y<texture.width; y++) {
+                //Debug.Log(perlin);
+                Color c = texture.GetPixel(x, y);
+                texture.SetPixel(x, y, new Color(
+                        c.r, c.g, c.b, Mathf.Min(1, perlin * c.a)));
+            }
+        }
+        texture.Apply();
+    }
+
+    private static void ApplyBlur(Texture2D texture) {
+        //KZLight.ApplyColor(texture, Color.red);
+        int step = 1;
+        for(int x=0; x<step; x++) {
+            Color c = new Color(1, 1, 1, 0);
+            for(int y=0; y<texture.height; y++) {
+                texture.SetPixel(x, y, c);
+            }
+        }
+        texture.Apply();
     }
 
     private void UpdateProperties() {
@@ -286,12 +329,12 @@ public class KZLight : MonoBehaviour {
             float x = 1;
             int index = 0;
             int hitIndex = 1;
-            float span = uvs.Length / 3; 
+            //float span = uvs.Length / 3; 
             float y = hits[0].distance * TEXTURE_SCALE / range;
             while(index < uvs.Length) {
                 uvs[index++] = new Vector2(x, 0);
                 uvs[index++] = new Vector2(x, y);
-                x -= 1f / span;
+                x -= 1f / uvs.Length;
                 y = hits[hitIndex++].distance * TEXTURE_SCALE / range;
                 //if(x < 0) Debug.Log("!!! x = "+x);
                 uvs[index++] = new Vector2(x, y);
