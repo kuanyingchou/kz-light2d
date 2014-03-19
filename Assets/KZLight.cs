@@ -37,17 +37,16 @@ public class KZLight : MonoBehaviour {
     public float duplicateDiff = .5f;
     public float duplicateZDiff = .1f;
 
-    public static float overflow= 0.1f;
+    public static float overflow= 0.05f;
 
     //[ private 
-    private static int TEXTURE_SIZE = 128;
+    private static int TEXTURE_SIZE = 96;
     private static float TWO_PI = Mathf.PI * 2;
     private static string DEFAULT_SHADER = 
             //"Unlit/Transparent";
             //"Custom/TransparentSingleColorShader";
             //"Particles/Additive";
             "Somian/Unlit/Transparent";
-    private static float TEXTURE_SCALE = .98f;
     private Mesh[] mesh;
     private GameObject[] light;
     private List<RaycastHit> hits = new List<RaycastHit>();
@@ -84,7 +83,9 @@ public class KZLight : MonoBehaviour {
 
     private Texture2D CreateTexture(List<RaycastHit> hits) {
         Texture2D texture = new Texture2D(
-                TEXTURE_SIZE, TEXTURE_SIZE, TextureFormat.ARGB32, false);
+                TEXTURE_SIZE-TEXTURE_SIZE/4, 
+                TEXTURE_SIZE, 
+                TextureFormat.ARGB32, false);
 
 
         KZLight.ApplyColor(texture, color);
@@ -393,12 +394,12 @@ public class KZLight : MonoBehaviour {
             int index = 0;
             int hitIndex = 1;
             //float span = uvs.Length / 3; 
-            float y = hits[0].distance * TEXTURE_SCALE / range;
+            float y = hits[0].distance / range;
             while(index < uvs.Length) {
                 uvs[index++] = new Vector2(x, 0);
                 uvs[index++] = new Vector2(x, y);
                 x -= 1f / uvs.Length;
-                y = hits[hitIndex++].distance * TEXTURE_SCALE / range;
+                y = hits[hitIndex++].distance / range;
                 //if(x < 0) Debug.Log("!!! x = "+x);
                 uvs[index++] = new Vector2(x, y);
             }
