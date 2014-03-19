@@ -26,6 +26,8 @@ public class KZLight : MonoBehaviour {
     [Range(0, 1)]
     public float alpha = .5f;
 
+    //public int eventThreshold = 5; //: TODO
+
     //[Range(0.5f, 1.5f)]
     //public float scale = 1.01f;
 
@@ -57,7 +59,9 @@ public class KZLight : MonoBehaviour {
     private Texture2D texture2d;
     //] 
 
-    private Dictionary<GameObject, int> hitObjects = 
+    private Dictionary<GameObject, int> seenObjects= 
+            new Dictionary<GameObject, int>();
+    private Dictionary<GameObject, int> lastSeenObjects= 
             new Dictionary<GameObject, int>();
 
     public void Start() {
@@ -202,6 +206,7 @@ public class KZLight : MonoBehaviour {
 
     private List<RaycastHit> Scan(
             Vector3 lightSource, float angleDeg, float viewDeg) {
+
         hits.Clear();
 
         RaycastHit hit;
@@ -219,6 +224,7 @@ public class KZLight : MonoBehaviour {
                     0);
             if(Physics.Raycast(lightSource, d, out hit, range)) {
                 hits.Add(hit);
+                Track(hit.transform.gameObject);
             } else {
                 RaycastHit h = new RaycastHit();
                 h.point = lightSource + d*range;
@@ -230,11 +236,52 @@ public class KZLight : MonoBehaviour {
 
         //hits = SimplifyHits(hits); 
 
+        HandleEvents();
+
         if(debug) DrawHits(lightSource, hits);
 
         hits.Reverse(); //TODO: remove this
 
         return hits;
+    }
+
+    private void Track(GameObject obj) {
+        if(seenObjects.ContainsKey(obj)) {
+            int count = seenObjects[obj];
+            seenObjects[obj] = count + 1;
+        } else {
+            seenObjects.Add(obj, 1);
+        }
+    }
+
+    class EventTracker {
+        public void AddObject(GameObject obj) {
+        }
+
+    }
+    private void SendLeave(GameObject obj) {
+        obj.SendMessage("LeaveLight", 
+            SendMessageOptions.DontRequireReceiver);
+    }
+    private void SendEnter(GameObject obj) {
+        obj.SendMessage("EnterLight", 
+            SendMessageOptions.DontRequireReceiver);
+    }
+    private void HandleEvents() {
+        foreach(var obj in seenObjects.Keys) {
+            if(!lastSeenObjects.ContainsKey(obj)) {
+                SendEnter(obj);
+            }
+        }
+        foreach(var obj in lastSeenObjects.Keys) {
+            if(!seenObjects.ContainsKey(obj)) {
+                SendLeave(obj);
+            }
+        }
+        Dictionary<GameObject, int> temp = lastSeenObjects;
+        lastSeenObjects = seenObjects;
+        seenObjects = temp;
+        seenObjects.Clear();
     }
 
     private void DrawHits(Vector3 lightSource, List<RaycastHit> hits) {
