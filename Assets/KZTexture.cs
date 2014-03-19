@@ -45,6 +45,14 @@ public class KZTexture {
         t2d.Apply();
         return t2d;
     }
+    public Texture2D ToTexture2D(Texture2D t2d) {
+        if(t2d.width != width || t2d.height != height) {
+            Debug.Log("size mismatch!");
+        }
+        t2d.SetPixels(pixels);
+        t2d.Apply();
+        return t2d;
+    }
 
     //private static float intensity = 0.111f;
     //private static float[] matrix = {

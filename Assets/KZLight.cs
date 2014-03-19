@@ -54,12 +54,11 @@ public class KZLight : MonoBehaviour {
             //new SeparateStrategy();
             new SeparateTextureStrategy();
     private KZTexture texture;
+    private Texture2D texture2d;
     //] 
 
-    /*
     private Dictionary<GameObject, int> hitObjects = 
             new Dictionary<GameObject, int>();
-    */
 
     public void Start() {
         if(lightMaterial == null) {
@@ -101,9 +100,8 @@ public class KZLight : MonoBehaviour {
             texture = KZTexture.BoxBlur(texture);
         }
 
-        Texture2D t2d = texture.ToTexture2D();
-        t2d.wrapMode = TextureWrapMode.Clamp;
-        return t2d;
+        texture2d = texture.ToTexture2D(texture2d);
+        return texture2d;
     }
 
     private static void ApplySoftEdges(
@@ -175,10 +173,10 @@ public class KZLight : MonoBehaviour {
             mesh[i].MarkDynamic();
         }
         oldNumberOfDuplicates = numberOfDuplicates;
-        texture = new KZTexture(
-                TEXTURE_SIZE,
-                TEXTURE_SIZE);
 
+        texture = new KZTexture(TEXTURE_SIZE, TEXTURE_SIZE);
+        texture2d = new Texture2D(TEXTURE_SIZE, TEXTURE_SIZE);
+        texture2d.wrapMode = TextureWrapMode.Clamp;
     }
     
     private void SetLightPositions() {
