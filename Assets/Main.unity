@@ -634,6 +634,58 @@ Transform:
   m_LocalScale: {x: 0, y: 10, z: 1}
   m_Children: []
   m_Father: {fileID: 139535115}
+--- !u!1 &1624578274
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  serializedVersion: 4
+  m_Component:
+  - 4: {fileID: 1624578276}
+  - 114: {fileID: 1624578275}
+  m_Layer: 0
+  m_Name: LightGenerator
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1624578275
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1624578274}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5098273d888984a4db0cb0e02f2e8314, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  debug: 1
+  dynamicUpdate: 1
+  direction: -90
+  angleOfView: 90
+  edgeCutout: 2
+  color: {r: 1, g: 1, b: 1, a: 1}
+  range: 8
+  numberOfRays: 128
+  lightMaterial: {fileID: 0}
+  iteration: 1
+  alpha: .76700002
+  numberOfDuplicates: 1
+  duplicateDiff: .0299999993
+  duplicateZDiff: .100000001
+--- !u!4 &1624578276
+Transform:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1624578274}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1, y: 3, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
 --- !u!1 &1629649457
 GameObject:
   m_ObjectHideFlags: 0
@@ -735,13 +787,13 @@ MonoBehaviour:
   dynamicUpdate: 1
   direction: -90
   angleOfView: 90
-  wrapAngle: 4
+  edgeCutout: 2
   color: {r: 1, g: 1, b: 1, a: 1}
   range: 8
   numberOfRays: 128
   lightMaterial: {fileID: 0}
   iteration: 1
-  alpha: .875
+  alpha: .76700002
   numberOfDuplicates: 1
   duplicateDiff: .0299999993
   duplicateZDiff: .100000001
@@ -752,59 +804,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1659320545}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.31999993, y: 2.95000005, z: 1}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_Children: []
-  m_Father: {fileID: 0}
---- !u!1 &1712762474
-GameObject:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  serializedVersion: 4
-  m_Component:
-  - 4: {fileID: 1712762476}
-  - 114: {fileID: 1712762475}
-  m_Layer: 0
-  m_Name: LightGenerator
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!114 &1712762475
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1712762474}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5098273d888984a4db0cb0e02f2e8314, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  debug: 1
-  dynamicUpdate: 1
-  direction: -90
-  angleOfView: 90
-  wrapAngle: 4
-  color: {r: 1, g: 1, b: 1, a: .501960814}
-  range: 8
-  numberOfRays: 256
-  lightMaterial: {fileID: 0}
-  iteration: 5
-  alpha: .200000003
-  numberOfDuplicates: 6
-  duplicateDiff: .0299999993
-  duplicateZDiff: .100000001
---- !u!4 &1712762476
-Transform:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1712762474}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -.870000005, y: 2.95000005, z: 2}
+  m_LocalPosition: {x: 2, y: 3, z: 1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -909,7 +909,7 @@ MonoBehaviour:
   dynamicUpdate: 1
   direction: -90
   angleOfView: 90
-  wrapAngle: 4
+  edgeCutout: 2
   color: {r: 0, g: 0, b: 1, a: .501960814}
   range: 8
   numberOfRays: 500

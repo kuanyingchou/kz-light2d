@@ -2,6 +2,50 @@
 using System.Collections;
 
 public class KZTexture {
+    public static Color transparent = new Color(1, 1, 1, 0);
+    
+    private Color[] pixels; 
+    public int width {
+        get { return _width; }
+    }    
+    public int height {
+        get { return _height; }
+    }
+    private int _width;
+    private int _height;
+
+    public KZTexture(int w, int h) {
+        pixels = new Color[w * h];
+        _width = w; _height = h;
+    }
+
+    public void Clear() {
+        Clear(transparent);
+    }
+    public void Clear(Color c) {
+        for(int i=0; i<pixels.Length; i++) {
+            pixels[i] = c;
+        }
+    }
+
+    public void SetPixel(int x, int y, Color c) {
+        pixels[y * width + x] = c;
+    }
+    public Color GetPixel(int x, int y) {
+        return pixels[y * width + x];
+    }
+
+    public Texture2D ToTexture2D() {
+        Texture2D t2d = new Texture2D(
+                width,
+                height, 
+                TextureFormat.ARGB32, 
+                false);
+        t2d.SetPixels(pixels);
+        t2d.Apply();
+        return t2d;
+    }
+
     //private static float intensity = 0.111f;
     //private static float[] matrix = {
     //    0.0625f, 0.0625f, 0.0625f, 
@@ -13,25 +57,24 @@ public class KZTexture {
     //    0.112f, 0.111f, 0.112f, 
     //    0.110f, 0.111f, 0.110f, 
     //};
+
     private static float[] matrix = {
         1/3f, 1/3f, 1/3f
     };
-    public static Color transparent = new Color(1, 1, 1, 0);
 
-    public static Texture2D BoxBlur(Texture2D texture) {
-        Texture2D buffer = new Texture2D(
-                texture.width, texture.height, texture.format, false);
+    public static KZTexture BoxBlur(KZTexture texture) {
+        KZTexture buffer = new KZTexture(
+                texture.width, texture.height);
         for(int x=0; x<texture.width; x++) {
             for(int y=0; y<texture.height; y++) {
                 BlurPixel(texture, buffer, x, y);
             }
         }
-        buffer.Apply();
         return buffer;
     }
 
     private static void BlurPixel(
-            Texture2D src, Texture2D dest, int x, int y) {
+            KZTexture src, KZTexture dest, int x, int y) {
 
         Color color = new Color(0, 0, 0, 0);
         int index = 0;
@@ -74,7 +117,7 @@ public class KZTexture {
                 input.r * f, input.g * f, input.b * f, input.a * f);
     }
 
-    private static Color GetPixel(Texture2D texture, int x, int y) {
+    private static Color GetPixel(KZTexture texture, int x, int y) {
         if(x < 0 || x >= texture.width ||
            y < 0 || y >= texture.height) return transparent;
         return texture.GetPixel(x, y);

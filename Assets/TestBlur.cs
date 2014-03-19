@@ -5,8 +5,7 @@ public class TestBlur : MonoBehaviour {
     private static string DEFAULT_SHADER = 
             "Unlit/Transparent";
     public void Start() {
-        Texture2D texture = new Texture2D(
-                32, 32, TextureFormat.ARGB32, false);
+        KZTexture texture = new KZTexture(32, 32);
         int edge = 4;            
         Color transparent = new Color(0, 0, 0, 0);
         for(int y=0; y<texture.height; y++) {
@@ -25,14 +24,12 @@ public class TestBlur : MonoBehaviour {
         //    }
         //}
 
-        texture.Apply();
-
         for(int i=0;i<1;i++) {
             texture = KZTexture.BoxBlur(texture);
         }
 
         Material material = new Material(Shader.Find(DEFAULT_SHADER));
-        material.mainTexture = texture;
+        material.mainTexture = texture.ToTexture2D();
         GameObject obj = GameObject.CreatePrimitive(PrimitiveType.Quad);
         obj.GetComponent<MeshRenderer>().material = material;
     }

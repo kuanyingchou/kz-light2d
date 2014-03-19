@@ -9,13 +9,13 @@ public class KZLight : MonoBehaviour {
 
     [Range(-180, 180)] 
     public float direction = 0; 
-    [Range(0, 180)] 
+    [Range(0, 720)] 
     public float angleOfView = 60;
-    public float wrapAngle = 4; //for blurry edges
-
-    public Color color = new Color(255, 255, 255, 32);
+    public int edgeCutout = 2; //for blurry edges
+    
+    public Color color = new Color(255, 255, 255, 255); 
     private Color oldColor; //used for live update
-    [Range(1, 000)]
+    [Range(1, 20)]
     public float range = 10; 
     public int numberOfRays = 500;
     public Material lightMaterial;
@@ -29,7 +29,7 @@ public class KZLight : MonoBehaviour {
     //[Range(0.5f, 1.5f)]
     //public float scale = 1.01f;
 
-    [Range(1, 50)]
+    [Range(1, 10)]
     public int numberOfDuplicates = 1;
     private int oldNumberOfDuplicates;
 
@@ -40,7 +40,7 @@ public class KZLight : MonoBehaviour {
     public static float overflow= 0.05f;
 
     //[ private 
-    private static int TEXTURE_SIZE = 96;
+    private static int TEXTURE_SIZE = 128;
     private static float TWO_PI = Mathf.PI * 2;
     private static string DEFAULT_SHADER = 
             //"Unlit/Transparent";
@@ -53,13 +53,20 @@ public class KZLight : MonoBehaviour {
     private MeshStrategy meshStrategy = 
             //new SeparateStrategy();
             new SeparateTextureStrategy();
+    private KZTexture texture;
     //] 
+
+    /*
+    private Dictionary<GameObject, int> hitObjects = 
+            new Dictionary<GameObject, int>();
+    */
 
     public void Start() {
         if(lightMaterial == null) {
             lightMaterial = CreateMaterial();
         }
         UpdateProperties();
+
         //if(debug) UnitTest();
     }
 
@@ -82,42 +89,35 @@ public class KZLight : MonoBehaviour {
     }
 
     private Texture2D CreateTexture(List<RaycastHit> hits) {
-        Texture2D texture = new Texture2D(
-                TEXTURE_SIZE-TEXTURE_SIZE/4, 
-                TEXTURE_SIZE, 
-                TextureFormat.ARGB32, false);
-
-
-        KZLight.ApplyColor(texture, color);
-        KZLight.ApplyGradient(texture, alpha);
-        //KZLight.ApplyPerlin(texture);
-        //KZLight.ApplyBlur(texture);
-        KZLight.ApplyShadow(texture, hits, range);
+        //[ use a smaller width here to create a blurry effect 
+        texture.Clear(color);
+        ApplySoftEdges(texture, edgeCutout, 
+                new Color(color.r, color.g, color.b));
+        ApplyGradient(texture, alpha);
+        //ApplyPerlin(texture);
+        ApplyShadow(texture, hits, range);
 
         for(int i=0; i<iteration; i++) {
             texture = KZTexture.BoxBlur(texture);
         }
-        texture.wrapMode = TextureWrapMode.Clamp;
-        return texture;
+
+        Texture2D t2d = texture.ToTexture2D();
+        t2d.wrapMode = TextureWrapMode.Clamp;
+        return t2d;
     }
 
-    private static void ApplyColor(Texture2D texture, Color c) {
-        for(int x=0; x<texture.width; x++) {
-            for(int y=0; y<texture.height; y++) {
-                texture.SetPixel(x, y, c);
-                //texture.SetPixel(x, y, Color.green);
-            }
-        }
+    private static void ApplySoftEdges(
+            KZTexture texture, int numOfPixels, Color c) {
+        Color color = new Color(c.r, c.g, c.b, 0);
         for(int y=0; y<texture.height; y++) {
-            for(int i=0; i<1; i++) {
-                texture.SetPixel(i, y, KZTexture.transparent);
-                texture.SetPixel(texture.width - 1 - i, y, KZTexture.transparent);
+            for(int i=0; i<numOfPixels; i++) {
+                texture.SetPixel(i, y, color);
+                texture.SetPixel(texture.width - 1 - i, y, color);
             }
         }
-        texture.Apply();
     }
 
-    private static void ApplyGradient(Texture2D texture, float maxAlpha) {
+    private static void ApplyGradient(KZTexture texture, float maxAlpha) {
         for(int y=0; y<texture.height; y++) {
             float a = maxAlpha - ((float)y/TEXTURE_SIZE * maxAlpha);
             for(int x=0; x<texture.width; x++) {
@@ -125,9 +125,8 @@ public class KZLight : MonoBehaviour {
                 texture.SetPixel(x, y, new Color(c.r, c.g, c.b, c.a * a));
             }
         }
-        texture.Apply();
     }
-    private static void ApplyPerlin(Texture2D texture) {
+    private static void ApplyPerlin(KZTexture texture) {
         for(int x=0; x<texture.width; x++) {
             float perlin = Mathf.PerlinNoise(
                         /*Random.Range(0, 2) + */
@@ -139,19 +138,6 @@ public class KZLight : MonoBehaviour {
                         c.r, c.g, c.b, Mathf.Min(1, perlin * c.a)));
             }
         }
-        texture.Apply();
-    }
-
-    private static void ApplyBlur(Texture2D texture) {
-        //KZLight.ApplyColor(texture, Color.red);
-        int step = 1;
-        for(int x=0; x<step; x++) {
-            Color c = new Color(1, 1, 1, 0);
-            for(int y=0; y<texture.height; y++) {
-                texture.SetPixel(x, y, c);
-            }
-        }
-        texture.Apply();
     }
 
     private void UpdateProperties() {
@@ -189,6 +175,10 @@ public class KZLight : MonoBehaviour {
             mesh[i].MarkDynamic();
         }
         oldNumberOfDuplicates = numberOfDuplicates;
+        texture = new KZTexture(
+                TEXTURE_SIZE,
+                TEXTURE_SIZE);
+
     }
     
     private void SetLightPositions() {
@@ -211,7 +201,6 @@ public class KZLight : MonoBehaviour {
             angle += TWO_PI / numberOfDuplicates;
         }
     }
-
 
     private List<RaycastHit> Scan(
             Vector3 lightSource, float angleDeg, float viewDeg) {
@@ -315,7 +304,7 @@ public class KZLight : MonoBehaviour {
         //}
     }
     private static void ApplyShadow(
-            Texture2D texture, List<RaycastHit> hits, float range) {
+            KZTexture texture, List<RaycastHit> hits, float range) {
         /*    
         for(int y=0; y<texture.height; y++) {
             for(int x=0; x<texture.width; x++) {
@@ -335,7 +324,6 @@ public class KZLight : MonoBehaviour {
                 texture.SetPixel(x, i, KZTexture.transparent);
             }
         }
-        texture.Apply();
         /*
         for(int x=0; x<texture.width; x++) {
             texture.SetPixel(x, 0, transparent);
