@@ -195,7 +195,8 @@ public class KZLight : MonoBehaviour {
         oldNumberOfDuplicates = numberOfDuplicates;
 
         texture = new KZTexture(textureSize, textureSize);
-        texture2d = new Texture2D(textureSize, textureSize);
+        texture2d = new Texture2D(textureSize, textureSize, 
+                TextureFormat.ARGB32, false);
         texture2d.wrapMode = TextureWrapMode.Clamp;
     }
     
@@ -250,7 +251,7 @@ public class KZLight : MonoBehaviour {
         //hits = SimplifyHits(hits); 
         HandleEvents();
         if(debug) DrawHits(lightSource, hits);
-        hits.Reverse(); //TODO: remove this
+        //hits.Reverse(); //TODO: remove this
         return hits;
     }
 
@@ -333,8 +334,7 @@ public class KZLight : MonoBehaviour {
         }
 
         mesh.Clear();
-        Vector3[] vertices = 
-                meshStrategy.CreateVertices(
+        Vector3[] vertices = meshStrategy.CreateVertices(
                 hits, pos, direction, angleOfView, range);
         mesh.vertices = vertices;
         mesh.triangles = meshStrategy.CreateTriangles(vertices);
@@ -371,7 +371,7 @@ public class KZLight : MonoBehaviour {
             for(int i=hy; i<texture.height; i++) {
                 Color shadowColor = KZTexture.GetColor(
                         texture.GetPixel(x, i), 0);
-                texture.SetPixel(x, i, shadowColor);
+                texture.SetPixel(texture.width - 1 -x, i, shadowColor);
             }
         }
     }
@@ -469,9 +469,9 @@ public class KZLight : MonoBehaviour {
         public override Vector2[] CreateUV(
                 Vector3[] vertices, List<RaycastHit> hits, float range) {
             Vector2[] uvs = new Vector2[vertices.Length];
-            float x = 0;
             int index = 0;
             float span = uvs.Length / 3; 
+            float x = 0;
             while(index < uvs.Length) {
                 //uvs[index++] = Vector2.zero;
                 uvs[index++] = new Vector2(x, 0);
