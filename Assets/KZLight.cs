@@ -8,17 +8,25 @@ public class KZLight : MonoBehaviour {
 
     //[ basic properties
     [Range(-180, 180)] public float direction = 0; 
-    [Range(0, 720)] public float angleOfView = 60;
+    [Range(0, 720)] public float angleOfView = 90;
     [Range(1, 20)] public float range = 10; 
     
-    public Color color = new Color(255, 255, 255, 255); 
+    public Color color = new Color(1, 1, 1, 1); 
     private Color oldColor; //used for live update
+    public Color tint = new Color(1, .94f, .59f, 1);
     [Range(0, 1)] public float alpha = .5f;
+
+    public bool enableTint = false;
+    public bool enableFallOff = true;
+    public bool enableSoftEdges = true;
+    public bool enablePerlin = false;
+    public float perlinScale = 5;
+    public float perlinStart = 5;
 
 
     //[ advanced properties
     public Material lightMaterial;
-    [Range(8, 512)] public static int textureSize = 128;
+    public int textureSize = 128;
     public int numberOfRays = 128;
     public int iteration = 0;
     public int edgeCutout = 2; //for blurry edges
@@ -31,9 +39,6 @@ public class KZLight : MonoBehaviour {
 
     [Range(0, 5)] public float duplicateDiff = .5f;
     public float duplicateZDiff = .1f;
-    public bool enablePerlin = false;
-    public float perlinStart = 5;
-    public float perlinScale = 5;
 
     //[ private 
     private bool dynamicUpdate = true;
@@ -61,7 +66,7 @@ public class KZLight : MonoBehaviour {
             lightMaterial = CreateMaterial();
         }
         UpdateProperties();
-
+        
         //if(debug) UnitTest();
     }
 
@@ -88,10 +93,10 @@ public class KZLight : MonoBehaviour {
 
     private Texture2D CreateTexture(List<RaycastHit> hits) {
         //[ use a smaller width here to create a blurry effect 
-        texture.Clear(color);
-        ApplySoftEdges(texture, edgeCutout, 
-                new Color(color.r, color.g, color.b));
-        ApplyGradient(texture, alpha);
+        if(enableTint) ApplyColorWithTint(texture, color, tint, alpha);
+        else ApplyColor(texture, color, alpha);
+        if(enableSoftEdges) ApplySoftEdges(texture, edgeCutout);
+        if(enableFallOff) ApplyGradient(texture, alpha);
         if(enablePerlin) ApplyPerlin(texture, perlinStart, perlinScale);
         ApplyShadow(texture, hits, range, overflow);
 
@@ -103,10 +108,28 @@ public class KZLight : MonoBehaviour {
         return texture2d;
     }
 
-    private static void ApplySoftEdges(
-            KZTexture texture, int numOfPixels, Color c) {
-        Color color = new Color(c.r, c.g, c.b, 0);
+    private static void ApplyColor(
+            KZTexture texture, Color c, float alphaScale) {
+        texture.Clear(new Color(c.r, c.g, c.b, c.a * alphaScale));
+    }
+
+    private static void ApplyColorWithTint(
+            KZTexture texture, Color c, Color tint, float alphaScale) {
         for(int y=0; y<texture.height; y++) {
+            Color t = KZTexture.GetTint(
+                    c, tint, (float)y / (texture.height-1));
+            for(int x=0; x<texture.width; x++) {
+                texture.SetPixel(x, y, 
+                        new Color(t.r, t.g, t.b, t.a * alphaScale));
+            }
+        }
+                
+    }
+
+    private static void ApplySoftEdges(
+            KZTexture texture, int numOfPixels) {
+        for(int y=0; y<texture.height; y++) {
+            Color color = KZTexture.GetColor(texture.GetPixel(0, y), 0);
             for(int i=0; i<numOfPixels; i++) {
                 texture.SetPixel(i, y, color);
                 texture.SetPixel(texture.width - 1 - i, y, color);
@@ -116,7 +139,7 @@ public class KZLight : MonoBehaviour {
 
     private static void ApplyGradient(KZTexture texture, float maxAlpha) {
         for(int y=0; y<texture.height; y++) {
-            float a = maxAlpha - ((float)y/textureSize * maxAlpha);
+            float a = maxAlpha - ((float)y/texture.height * maxAlpha);
             for(int x=0; x<texture.width; x++) {
                 Color c = texture.GetPixel(x, y);
                 texture.SetPixel(x, y, new Color(c.r, c.g, c.b, c.a * a));
@@ -359,7 +382,9 @@ public class KZLight : MonoBehaviour {
                     texture.height));
             //[ shadow 
             for(int i=hy; i<texture.height; i++) {
-                texture.SetPixel(x, i, KZTexture.transparent);
+                Color shadowColor = KZTexture.GetColor(
+                        texture.GetPixel(x, i), 0);
+                texture.SetPixel(x, i, shadowColor);
             }
         }
         /*
@@ -557,8 +582,10 @@ public class KZLight : MonoBehaviour {
         return a < range * .5f + 0.001f;
     }
 
+*/
 
-    private bool IsWithinAngles(float a, float start, float range, float err) {
+    private bool IsWithinAngles(
+            float a, float start, float range, float err) {
         a = GetValidRad(a);
         start = GetValidRad(start);
         if(a > start - err && a < start + range + err) return true;
@@ -592,6 +619,12 @@ public class KZLight : MonoBehaviour {
         if(res < 0 || res > TWO_PI) Debug.LogError(res + " !!!");
         return res;
     }
+    private void TestPressure() {
+        for(int i=0; i< 100; i++) {
+            GameObject o = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            o.transform.position = new Vector3(i, 0, 0);
+        }
+    }
     //[ tests
     private void TestIsWithinAngles() {
         for(float start = -Mathf.PI; start < Mathf.PI; start += Mathf.PI / 180) {
@@ -610,6 +643,6 @@ public class KZLight : MonoBehaviour {
     }
     private void UnitTest() {
         TestIsWithinAngles();
+        TestPressure();
     }
-*/
 }

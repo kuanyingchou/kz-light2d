@@ -3,6 +3,9 @@ using System.Collections;
 
 public class KZTexture {
     public static Color transparent = new Color(1, 1, 1, 0);
+
+    //TODO: color tint
+    //public static Color transparent = new Color(255, 239, 150, 0); 
     
     private Color[] pixels; 
     public int width {
@@ -32,6 +35,11 @@ public class KZTexture {
         pixels[y * width + x] = c;
     }
     public Color GetPixel(int x, int y) {
+        return pixels[y * width + x];
+    }
+    public Color GetPixel(int x, int y, Color defaultColor) {
+        if(x < 0 || x >= width ||
+           y < 0 || y >= height) return defaultColor;
         return pixels[y * width + x];
     }
 
@@ -70,6 +78,7 @@ public class KZTexture {
         1/3f, 1/3f, 1/3f
     };
 
+    //TODO make it more generic
     public static KZTexture BoxBlur(KZTexture texture) {
         KZTexture buffer = new KZTexture(
                 texture.width, texture.height);
@@ -82,15 +91,17 @@ public class KZTexture {
     }
 
     private static void BlurPixel(
-            KZTexture src, KZTexture dest, int x, int y) {
+            KZTexture src, KZTexture dest, 
+            int x, int y) {
 
         Color color = new Color(0, 0, 0, 0);
+        Color defaultColor = GetColor(src.GetPixel(x, y), 0);
         int index = 0;
         int r = 0;
         //for(int r = -1; r <= 1; r++) {
             for(int s = -1; s <= 1; s++) {
                 Color c = Mul(
-                        GetPixel(src, x+s, y+r),
+                        src.GetPixel(x+s, y+r, defaultColor),
                         matrix[index++]);
                 color.r += c.r; 
                 color.g += c.g; 
@@ -125,9 +136,21 @@ public class KZTexture {
                 input.r * f, input.g * f, input.b * f, input.a * f);
     }
 
+/*
     private static Color GetPixel(KZTexture texture, int x, int y) {
         if(x < 0 || x >= texture.width ||
            y < 0 || y >= texture.height) return transparent;
         return texture.GetPixel(x, y);
+    }
+*/
+    public static Color GetTint(Color a, Color b, float tintFactor) {
+        return new Color(a.r + (b.r - a.r) * tintFactor,
+                         a.g + (b.g - a.g) * tintFactor,
+                         a.b + (b.b - a.b) * tintFactor,
+                         a.a + (b.a - a.a) * tintFactor);
+
+    }
+    public static Color GetColor(Color c, float alphaOverride) {
+        return new Color(c.r, c.g, c.b, alphaOverride);
     }
 }
