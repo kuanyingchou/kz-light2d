@@ -19,10 +19,10 @@ public class KZLight : MonoBehaviour {
     public bool enableTint = false;
     public bool enableFallOff = true;
     public bool enableSoftEdges = true;
+
     public bool enablePerlin = false;
     public float perlinScale = 5;
     public float perlinStart = 5;
-
 
     //[ advanced properties
     public Material lightMaterial;
@@ -224,7 +224,6 @@ public class KZLight : MonoBehaviour {
             Vector3 lightSource, float angleDeg, float viewDeg) {
 
         hits.Clear();
-
         RaycastHit hit;
 
         float angleRad = angleDeg * Mathf.Deg2Rad;
@@ -234,10 +233,7 @@ public class KZLight : MonoBehaviour {
 
         float angle = start;
         for(int i=0; i<numberOfRays; i++) {
-            Vector3 d= new Vector3(
-                    Mathf.Cos(angle), 
-                    Mathf.Sin(angle), 
-                    0);
+            Vector3 d= ToVector3(angle); 
             if(Physics.Raycast(lightSource, d, out hit, range)) {
                 hits.Add(hit);
                 Track(hit.transform.gameObject);
@@ -250,15 +246,16 @@ public class KZLight : MonoBehaviour {
             angle += viewRad / numberOfRays;
         }
 
+        //TODO: block check
         //hits = SimplifyHits(hits); 
-
         HandleEvents();
-
         if(debug) DrawHits(lightSource, hits);
-
         hits.Reverse(); //TODO: remove this
-
         return hits;
+    }
+
+    private static Vector3 ToVector3(float angle) {
+        return new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0);
     }
 
     private void Track(GameObject obj) {
@@ -270,11 +267,6 @@ public class KZLight : MonoBehaviour {
         }
     }
 
-    class EventTracker {
-        public void AddObject(GameObject obj) {
-        }
-
-    }
     private void SendLeave(GameObject obj) {
         obj.SendMessage("LeaveLight", 
             SendMessageOptions.DontRequireReceiver);
@@ -302,7 +294,8 @@ public class KZLight : MonoBehaviour {
 
     private void DrawHits(Vector3 lightSource, List<RaycastHit> hits) {
         for(int i=0; i<hits.Count; i++) {
-            Debug.DrawRay(lightSource, hits[i].point - lightSource, Color.green);
+            Debug.DrawRay(lightSource, 
+                    hits[i].point - lightSource, Color.green);
         }
     }
 
@@ -326,10 +319,11 @@ public class KZLight : MonoBehaviour {
     }
 
     private void UpdateLightMesh(
-            Mesh meshes, Vector3 pos, List<RaycastHit> hits) {
+            Mesh mesh, Vector3 pos, List<RaycastHit> hits) {
 //Debug.DrawRay(Camera.main.transform.position, lightSource - Camera.main.transform.position, Color.red);
         if(hits.Count <= 0) {
             Debug.Log("hits nothing!");
+            mesh.Clear();
             return;
         }
 
@@ -338,18 +332,18 @@ public class KZLight : MonoBehaviour {
             DrawLightPolygon(hits);
         }
 
-        meshes.Clear();
+        mesh.Clear();
         Vector3[] vertices = 
                 meshStrategy.CreateVertices(
                 hits, pos, direction, angleOfView, range);
-        meshes.vertices = vertices;
-        meshes.triangles = meshStrategy.CreateTriangles(vertices);
-        meshes.normals = meshStrategy.CreateNormals(vertices);
-        meshes.uv = meshStrategy.CreateUV(vertices, hits, range);
+        mesh.vertices = vertices;
+        mesh.triangles = meshStrategy.CreateTriangles(vertices);
+        mesh.normals = meshStrategy.CreateNormals(vertices);
+        mesh.uv = meshStrategy.CreateUV(vertices, hits, range);
 
-        //meshes.RecalculateNormals();
-        //meshes.RecalculateBounds();
-        meshes.Optimize();
+        //mesh.RecalculateNormals();
+        //mesh.RecalculateBounds();
+        mesh.Optimize();
     }
 
     private void DrawLightPolygon(List<RaycastHit> hits) {
@@ -367,39 +361,19 @@ public class KZLight : MonoBehaviour {
     private static void ApplyShadow(
             KZTexture texture, List<RaycastHit> hits, 
             float range, float overflow) {
-        /*    
-        for(int y=0; y<texture.height; y++) {
-            for(int x=0; x<texture.width; x++) {
-                texture.SetPixel(x, y, Color.red);
-            }
-        }
-        texture.Apply();
-        */
+        if(hits.Count == 0) return;        
         for(int x=0; x<texture.width; x++) {
             int hyIndex = Mathf.FloorToInt(
                     (float)x / texture.width * hits.Count);
             int hy = Mathf.Min(texture.height - 5, Mathf.FloorToInt(
                     (hits[hyIndex].distance + overflow) / range * 
                     texture.height));
-            //[ shadow 
             for(int i=hy; i<texture.height; i++) {
                 Color shadowColor = KZTexture.GetColor(
                         texture.GetPixel(x, i), 0);
                 texture.SetPixel(x, i, shadowColor);
             }
         }
-        /*
-        for(int x=0; x<texture.width; x++) {
-            texture.SetPixel(x, 0, transparent);
-        }
-        for(int y=0; y<texture.height; y++) {
-            texture.SetPixel(0, y, transparent);
-            texture.SetPixel(texture.width-1, y, transparent);
-        }
-        for(int i=0; i<1; i++) {
-            texture = BoxBlur.Blur(texture);
-        }
-        */
     }
 
     interface MeshStrategy {
@@ -564,27 +538,8 @@ public class KZLight : MonoBehaviour {
     private bool Similar(float a, float b, float err) {
         return Mathf.Abs(a - b) < err;
     }
-/*
-    private bool Similar(Vector3 a, Vector3 b, Vector3 lightSource, float err) {
-        return Vector3.Angle(a - lightSource, b - lightSource) < err;
-    }
 
-    private Mesh GetMesh(GameObject o) {
-        return o.GetComponent<MeshFilter>().meshes;
-    }
-
-    private int CompareAngle(float a, float b) {
-        return (a - b)>0?1:-1;
-    }
-
-    private bool IsVisible(Vector3 p, Vector3 dir, float range) {
-        float a = Vector3.Angle(p, dir);
-        //if(a < 0) Debug.LogError(a);
-        return a < range * .5f + 0.001f;
-    }
-
-*/
-
+    //[ tests
     private bool IsWithinAngles(
             float a, float start, float range, float err) {
         a = GetValidRad(a);
@@ -646,4 +601,25 @@ public class KZLight : MonoBehaviour {
         TestIsWithinAngles();
         TestPressure();
     }
+
+/*
+    private bool Similar(Vector3 a, Vector3 b, Vector3 lightSource, float err) {
+        return Vector3.Angle(a - lightSource, b - lightSource) < err;
+    }
+
+    private Mesh GetMesh(GameObject o) {
+        return o.GetComponent<MeshFilter>().meshes;
+    }
+
+    private int CompareAngle(float a, float b) {
+        return (a - b)>0?1:-1;
+    }
+
+    private bool IsVisible(Vector3 p, Vector3 dir, float range) {
+        float a = Vector3.Angle(p, dir);
+        //if(a < 0) Debug.LogError(a);
+        return a < range * .5f + 0.001f;
+    }
+
+*/
 }
