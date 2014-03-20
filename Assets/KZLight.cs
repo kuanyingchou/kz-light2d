@@ -44,9 +44,10 @@ public class KZLight : MonoBehaviour {
     private bool dynamicUpdate = true;
     private static float TWO_PI = Mathf.PI * 2;
     private static string DEFAULT_SHADER = 
-            "Unlit/Transparent";
+            //"Unlit/Transparent";
             //"Custom/TransparentSingleColorShader";
             //"Particles/Additive";
+            "Mobile/Particles/Additive";
             //"Somian/Unlit/Transparent";
     private Mesh[] meshes;
     private GameObject[] lights;
