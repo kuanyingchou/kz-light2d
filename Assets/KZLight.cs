@@ -381,21 +381,29 @@ public class KZLight : MonoBehaviour {
         if(hits.Count == 0) return;        
         for(int x=0; x<texture.width; x++) {
             int hitIndex = 
-                    Mathf.FloorToInt((float)x / (texture.width-1) * 
-                    (hits.Count - 1));
-            int hy = Mathf.Min(
-                    texture.height - 1, 
-                    Mathf.FloorToInt(
-                        (hits[hitIndex].distance + overflow) / range * 
-                        texture.height));
+                    Mathf.RoundToInt(
+                        Mathf.Min(
+                            1,
+                            (float)x / (texture.width-1) 
+                        ) * (hits.Count - 1)
+                    );
+            int hy = 
+                    Mathf.RoundToInt(
+                        Mathf.Min(
+                            1,
+                            (hits[hitIndex].distance + overflow) / range
+                        ) * (texture.height - 1)
+                    );
             for(int i=hy; i<texture.height; i++) {
                 int xIndex = texture.width - 1 - x;
                 Color original = texture.GetPixel(xIndex, i);
                 //Color shadowColor = KZTexture.GetColor(original, 0);
-                Color shadowColor = KZTexture.GetColor(
-                        original, 
-                        original.a * (i/(texture.height-1f) * 
-                        brightness));
+                Color shadowColor = 
+                        //Color.black
+                        KZTexture.GetColor(
+                            original, 
+                            original.a * (i/(texture.height-1f) * brightness)
+                        );
                 texture.SetPixel(xIndex, i, shadowColor);
             }
         }

@@ -3,11 +3,8 @@ using System.Collections;
 
 public class KZTexture {
     public static Color transparent = new Color(1, 1, 1, 0);
-
-    //TODO: color tint
-    //public static Color transparent = new Color(255, 239, 150, 0); 
-    
     private Color[] pixels; 
+
     public int width {
         get { return _width; }
     }    
@@ -88,7 +85,7 @@ public class KZTexture {
     };
 
     public static KZTexture BoxBlur(KZTexture texture) {
-        return BoxBlur(texture, box);
+        return BoxBlur(texture, linear3);
     }
     public static KZTexture BoxBlur(KZTexture texture, float[,] kernel) {
         KZTexture buffer = new KZTexture(
