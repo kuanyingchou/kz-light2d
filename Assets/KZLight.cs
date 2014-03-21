@@ -7,14 +7,16 @@ public class KZLight : MonoBehaviour {
     public bool debug = true;
 
     //[ basic properties
-    [Range(-180, 180)] public float direction = 0; 
-    [Range(0, 720)] public float angleOfView = 90;
-    [Range(1, 20)] public float range = 10; 
+    /*[Range(-180, 180)]*/ public float direction = 0; 
+    /*[Range(0, 720)]*/ public float angleOfView = 90;
+    /*[Range(1, 20)]*/ public float radius = 10; 
     
+    public Material lightMaterial;
     public Color color = new Color(1, 1, 1, 1); 
     private Color oldColor; //used for live update
     public Color tint = new Color(1, .94f, .59f, 1);
-    [Range(0, 1)] public float alpha = .5f;
+    /*[Range(0, 1)]*/ public float alpha = .5f;
+    public float shadowBrightness = 1;
 
     public bool enableTint = false;
     public bool enableFallOff = true;
@@ -25,8 +27,8 @@ public class KZLight : MonoBehaviour {
     public float perlinStart = 5;
 
     //[ advanced properties
-    public Material lightMaterial;
-    public int textureSize = 128;
+    public int textureWidth = 128;
+    public int textureHeight = 128;
     public int numberOfRays = 128;
     public int iteration = 0;
     public int edgeCutout = 2; //for blurry edges
@@ -34,16 +36,17 @@ public class KZLight : MonoBehaviour {
 
     //public int eventThreshold = 5; //: TODO
 
-    [Range(1, 10)] public int numberOfDuplicates = 1;
+    /*[Range(1, 10)]*/ public int numberOfDuplicates = 1;
     private int oldNumberOfDuplicates;
 
-    [Range(0, 5)] public float duplicateDiff = .5f;
+    /*[Range(0, 5)]*/ public float duplicateDiff = .5f;
     public float duplicateZDiff = .1f;
 
     //[ private 
     private bool dynamicUpdate = true;
     private static float TWO_PI = Mathf.PI * 2;
     private static string DEFAULT_SHADER = 
+            //"Diffuse";
             //"Unlit/Transparent";
             //"Custom/TransparentSingleColorShader";
             //"Particles/Additive";
@@ -55,6 +58,7 @@ public class KZLight : MonoBehaviour {
     private MeshStrategy meshStrategy = 
             //new SeparateStrategy();
             new SeparateTextureStrategy();
+            //new CombineStrategy();
     private KZTexture texture;
     private Texture2D texture2d;
     private Dictionary<GameObject, int> seenObjects= 
@@ -64,21 +68,27 @@ public class KZLight : MonoBehaviour {
 
     public void Start() {
         if(lightMaterial == null) {
-            lightMaterial = CreateMaterial();
+            //lightMaterial = CreateMaterial();
+            Debug.LogError("Please assign a material!");
+            return;
         }
+        lightMaterial = CreateMaterial(lightMaterial);
         UpdateProperties();
         
         //if(debug) UnitTest();
     }
 
     public void LateUpdate() {
+        if(lightMaterial == null) return;
+
         if(dynamicUpdate) UpdateProperties();
 
         SetLightPositions();
 
         for(int i=0; i<numberOfDuplicates; i++) {
             Vector3 pos = lights[i].transform.position;
-            List<RaycastHit> hits = Scan(pos, direction, angleOfView);
+            List<RaycastHit> hits = 
+                    Scan(pos, direction, angleOfView, radius);
             UpdateLightMesh(meshes[i], pos, hits);
             lightMaterial.mainTexture = CreateTexture(hits);
         }
@@ -86,9 +96,10 @@ public class KZLight : MonoBehaviour {
 
     //[ private
 
-    private Material CreateMaterial() {
-        Material material = new Material(Shader.Find(DEFAULT_SHADER));
-        //material.mainTexture = CreateTexture(nu);
+    private static Material CreateMaterial(Material m) {
+        //return m;
+        //Material material = (Material)GameObject.Instantiate(m);
+        Material material = new Material(m);
         return material;
     }
 
@@ -99,7 +110,7 @@ public class KZLight : MonoBehaviour {
         if(enableSoftEdges) ApplySoftEdges(texture, edgeCutout);
         if(enableFallOff) ApplyGradient(texture, alpha);
         if(enablePerlin) ApplyPerlin(texture, perlinStart, perlinScale);
-        ApplyShadow(texture, hits, range, overflow);
+        ApplyShadow(texture, hits, radius, overflow, shadowBrightness);
 
         for(int i=0; i<iteration; i++) {
             texture = KZTexture.BoxBlur(texture);
@@ -140,7 +151,7 @@ public class KZLight : MonoBehaviour {
 
     private static void ApplyGradient(KZTexture texture, float maxAlpha) {
         for(int y=0; y<texture.height; y++) {
-            float a = maxAlpha - ((float)y/texture.height * maxAlpha);
+            float a = maxAlpha - ((float)y/(texture.height-1) * maxAlpha);
             for(int x=0; x<texture.width; x++) {
                 Color c = texture.GetPixel(x, y);
                 texture.SetPixel(x, y, new Color(c.r, c.g, c.b, c.a * a));
@@ -153,7 +164,7 @@ public class KZLight : MonoBehaviour {
             float perlin = Mathf.PerlinNoise(
                         perlinStart +
                         (float)x / texture.width * perlinScale, 0);
-            for(int y=0; y<texture.width; y++) {
+            for(int y=0; y<texture.height; y++) {
                 //Debug.Log(perlin);
                 Color c = texture.GetPixel(x, y);
                 texture.SetPixel(x, y, new Color(
@@ -190,13 +201,14 @@ public class KZLight : MonoBehaviour {
 
             MeshFilter filter = lights[i].AddComponent<MeshFilter>();
             meshes[i] = filter.mesh;
-            meshes[i].MarkDynamic();
+            //meshes[i].MarkDynamic();
         }
         oldNumberOfDuplicates = numberOfDuplicates;
 
-        texture = new KZTexture(textureSize, textureSize);
-        texture2d = new Texture2D(textureSize, textureSize, 
+        texture = new KZTexture(textureWidth, textureHeight);
+        texture2d = new Texture2D(textureWidth, textureHeight, 
                 TextureFormat.ARGB32, false);
+                //TextureFormat.RGB24, false);
         texture2d.wrapMode = TextureWrapMode.Clamp;
     }
     
@@ -222,7 +234,8 @@ public class KZLight : MonoBehaviour {
     }
 
     private List<RaycastHit> Scan(
-            Vector3 lightSource, float angleDeg, float viewDeg) {
+            Vector3 lightSource, 
+            float angleDeg, float viewDeg, float range) {
 
         hits.Clear();
         RaycastHit hit;
@@ -235,7 +248,8 @@ public class KZLight : MonoBehaviour {
         float angle = start;
         for(int i=0; i<numberOfRays; i++) {
             Vector3 d= ToVector3(angle); 
-            if(Physics.Raycast(lightSource, d, out hit, range)) {
+            if(Physics.Raycast(lightSource, d, out hit, 
+                    Mathf.Abs(range))) {
                 hits.Add(hit);
                 Track(hit.transform.gameObject);
             } else {
@@ -269,12 +283,12 @@ public class KZLight : MonoBehaviour {
     }
 
     private void SendLeave(GameObject obj) {
-        obj.SendMessage("LeaveLight", 
-            SendMessageOptions.DontRequireReceiver);
+        if(obj) obj.SendMessage("LeaveLight", 
+                SendMessageOptions.DontRequireReceiver);
     }
     private void SendEnter(GameObject obj) {
-        obj.SendMessage("EnterLight", 
-            SendMessageOptions.DontRequireReceiver);
+        if(obj) obj.SendMessage("EnterLight", 
+                SendMessageOptions.DontRequireReceiver);
     }
     private void HandleEvents() {
         foreach(var obj in seenObjects.Keys) {
@@ -335,11 +349,11 @@ public class KZLight : MonoBehaviour {
 
         mesh.Clear();
         Vector3[] vertices = meshStrategy.CreateVertices(
-                hits, pos, direction, angleOfView, range);
+                hits, pos, direction, angleOfView, radius);
         mesh.vertices = vertices;
         mesh.triangles = meshStrategy.CreateTriangles(vertices);
         mesh.normals = meshStrategy.CreateNormals(vertices);
-        mesh.uv = meshStrategy.CreateUV(vertices, hits, range);
+        mesh.uv = meshStrategy.CreateUV(vertices, hits, radius);
 
         //mesh.RecalculateNormals();
         //mesh.RecalculateBounds();
@@ -360,18 +374,26 @@ public class KZLight : MonoBehaviour {
     }
     private static void ApplyShadow(
             KZTexture texture, List<RaycastHit> hits, 
-            float range, float overflow) {
+            float range, float overflow, float brightness) {
         if(hits.Count == 0) return;        
         for(int x=0; x<texture.width; x++) {
-            int hyIndex = Mathf.FloorToInt(
-                    (float)x / texture.width * hits.Count);
-            int hy = Mathf.Min(texture.height - 5, Mathf.FloorToInt(
-                    (hits[hyIndex].distance + overflow) / range * 
-                    texture.height));
+            int hitIndex = 
+                    Mathf.FloorToInt((float)x / (texture.width-1) * 
+                    (hits.Count - 1));
+            int hy = Mathf.Min(
+                    texture.height - 1, 
+                    Mathf.FloorToInt(
+                        (hits[hitIndex].distance + overflow) / range * 
+                        texture.height));
             for(int i=hy; i<texture.height; i++) {
+                int xIndex = texture.width - 1 - x;
+                Color original = texture.GetPixel(xIndex, i);
+                //Color shadowColor = KZTexture.GetColor(original, 0);
                 Color shadowColor = KZTexture.GetColor(
-                        texture.GetPixel(x, i), 0);
-                texture.SetPixel(texture.width - 1 -x, i, shadowColor);
+                        original, 
+                        original.a * (i/(texture.height-1f) * 
+                        brightness));
+                texture.SetPixel(xIndex, i, shadowColor);
             }
         }
     }
@@ -394,8 +416,8 @@ public class KZLight : MonoBehaviour {
             int index = 0;
             for(int i=0; i<numTriangles; i++) {
                 vertices[index++] = Vector3.zero;
+                vertices[index++] = hits[p+1].point - pos;
                 vertices[index++] = hits[p++].point - pos;
-                vertices[index++] = hits[p].point - pos;
             }
             return vertices;
         }
@@ -444,25 +466,25 @@ public class KZLight : MonoBehaviour {
             float start = angleRad - viewRad * .5f;
             //float end = angleRad + viewRad * .5f;
 
-            Vector3[] maxHits = new Vector3[hits.Count];
+            Vector3[] dests = new Vector3[hits.Count];
             float angle = start;
-            for(int i=0; i<maxHits.Length; i++) {
+            for(int i=0; i<dests.Length; i++) {
                 Vector3 d= new Vector3(
                         Mathf.Cos(angle), 
                         Mathf.Sin(angle), 
                         0);
-                maxHits[maxHits.Length - 1 - i] = d * range;
-                angle += viewRad / maxHits.Length;
+                dests[dests.Length - 1 - i] = d * range;
+                angle += viewRad / dests.Length;
             }
 
-            int numTriangles = maxHits.Length - 1;
+            int numTriangles = dests.Length - 1;
             Vector3[] vertices = new Vector3[numTriangles * 3];
             int p = 0;
             int index = 0;
             for(int i=0; i<numTriangles; i++) {
                 vertices[index++] = Vector3.zero;
-                vertices[index++] = maxHits[p++];
-                vertices[index++] = maxHits[p];
+                vertices[index++] = dests[p++];
+                vertices[index++] = dests[p];
             }
             return vertices;
         }
