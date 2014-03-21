@@ -443,7 +443,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   debug: 1
   direction: -45
-  angleOfView: 130
+  angleOfView: 100
   radius: 10
   lightMaterial: {fileID: 2100000, guid: 5d4d90a40ea633a49866946c1282e080, type: 2}
   color: {r: 1, g: 1, b: 1, a: 1}
@@ -452,7 +452,7 @@ MonoBehaviour:
   shadowBrightness: .200000003
   enableTint: 0
   enableFallOff: 1
-  enableSoftEdges: 1
+  enableSoftEdges: 0
   enableShadowTexture: 1
   enablePerlin: 1
   perlinScale: 10

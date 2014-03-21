@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
+//[ExecuteInEditMode]
 public class KZLight : MonoBehaviour {
     public bool debug = true;
 
@@ -22,6 +23,7 @@ public class KZLight : MonoBehaviour {
     public bool enableFallOff = true;
     public bool enableSoftEdges = true;
     public bool enableShadowTexture = true;
+    public bool enableClearEdge = false;
 
     public bool enablePerlin = false;
     public float perlinScale = 5;
@@ -56,10 +58,7 @@ public class KZLight : MonoBehaviour {
     private Mesh[] meshes;
     private GameObject[] lights;
     private List<RaycastHit> hits = new List<RaycastHit>();
-    private MeshStrategy meshStrategy = 
-            //new SeparateStrategy();
-            new SeparateTextureStrategy();
-            //new CombineStrategy();
+    private MeshStrategy meshStrategy;
     private KZTexture texture;
     private Texture2D texture2d;
     private Dictionary<GameObject, int> seenObjects= 
@@ -144,7 +143,8 @@ public class KZLight : MonoBehaviour {
     private static void ApplySoftEdges(
             KZTexture texture, int numOfPixels) {
         for(int y=0; y<texture.height; y++) {
-            Color color = KZTexture.GetColor(texture.GetPixel(0, y), 0);
+            Color color = KZTexture.GetColor(
+                    texture.GetPixel(texture.width/2, y), 0);
             for(int i=0; i<numOfPixels; i++) {
                 texture.SetPixel(i, y, color);
                 texture.SetPixel(texture.width - 1 - i, y, color);
@@ -214,6 +214,14 @@ public class KZLight : MonoBehaviour {
                 TextureFormat.ARGB32, false);
                 //TextureFormat.RGB24, false);
         texture2d.wrapMode = TextureWrapMode.Clamp;
+
+        if(enableClearEdge) {
+            meshStrategy = new SeparateStrategy();
+            //meshStrategy = new SimpleStrategy();
+            //new CombineStrategy();   
+        } else {
+            meshStrategy = new SeparateTextureStrategy();
+        }
     }
     
     private void SetLightPositions() {
@@ -419,6 +427,42 @@ public class KZLight : MonoBehaviour {
         Vector3[] CreateNormals(Vector3[] vertices);
         Vector2[] CreateUV(
                 Vector3[] vertices, List<RaycastHit> hits, float range);
+    }
+    class SimpleStrategy : MeshStrategy {
+        public virtual Vector3[] CreateVertices(
+                List<RaycastHit> hits, Vector3 pos, 
+                float direction, float angleOfView, float range) {
+
+            float angleRad = direction * Mathf.Deg2Rad;
+            float viewRad = angleOfView * Mathf.Deg2Rad;
+
+            Vector3 start = ToVector3(angleRad-viewRad/2) * range;
+            Vector3 end = ToVector3(angleRad+viewRad/2) * range;
+
+            Vector3[] vertices = new Vector3[3];
+            vertices[0] = Vector3.zero;
+            vertices[1] = start;
+            vertices[2] = end;
+            return vertices;
+        }
+        public int[] CreateTriangles(Vector3[] vertices) {
+            return new int[] {0, 2, 1};
+        }
+        public Vector3[] CreateNormals(Vector3[] vertices) {
+            Vector3[] normals = new Vector3[vertices.Length];
+            for(int i=0; i<normals.Length; i++) {
+                normals[i] = -Vector3.forward;
+            }
+            return normals;
+        }
+        public virtual Vector2[] CreateUV(
+                Vector3[] vertices, List<RaycastHit> hits, float range) {
+            return new Vector2[] {
+                new Vector2(0, 0),
+                new Vector2(0, 1),
+                new Vector2(0, 1)
+            };
+        }
     }
     class SeparateStrategy : MeshStrategy {
         public virtual Vector3[] CreateVertices(

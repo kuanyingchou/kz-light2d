@@ -106,14 +106,15 @@ MonoBehaviour:
   angleOfView: 30
   radius: 15
   lightMaterial: {fileID: 2100000, guid: 5d4d90a40ea633a49866946c1282e080, type: 2}
-  color: {r: 0, g: .501960814, b: 1, a: 1}
-  tint: {r: 1, g: .939999998, b: .589999974, a: 1}
+  color: {r: 1, g: 0, b: 0, a: 1}
+  tint: {r: .950101376, g: 1, b: .0955882072, a: 1}
   alpha: 1
   shadowBrightness: .200000003
-  enableTint: 0
-  enableFallOff: 1
-  enableSoftEdges: 1
+  enableTint: 1
+  enableFallOff: 0
+  enableSoftEdges: 0
   enableShadowTexture: 0
+  enableClearEdge: 0
   enablePerlin: 0
   perlinScale: 5
   perlinStart: 5
@@ -250,13 +251,14 @@ MonoBehaviour:
   radius: 15
   lightMaterial: {fileID: 2100000, guid: 5d4d90a40ea633a49866946c1282e080, type: 2}
   color: {r: 0, g: .501960814, b: 1, a: 1}
-  tint: {r: 1, g: .939999998, b: .589999974, a: 1}
+  tint: {r: 1, g: 0, b: .889655113, a: 1}
   alpha: 1
   shadowBrightness: .200000003
-  enableTint: 0
-  enableFallOff: 1
-  enableSoftEdges: 1
+  enableTint: 1
+  enableFallOff: 0
+  enableSoftEdges: 0
   enableShadowTexture: 0
+  enableClearEdge: 0
   enablePerlin: 0
   perlinScale: 5
   perlinStart: 5
@@ -276,7 +278,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1540786217}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3, y: -4, z: 2}
+  m_LocalPosition: {x: 3, y: -4, z: 1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
