@@ -68,23 +68,34 @@ public class KZTexture {
     //    0.0625f, 0.5f, 0.0625f, 
     //    0.0625f, 0.0625f, 0.0625f, 
     //};
-    //private static float[] matrix = {
-    //    0.110f, 0.111f, 0.110f, 
-    //    0.112f, 0.111f, 0.112f, 
-    //    0.110f, 0.111f, 0.110f, 
-    //};
 
-    private static float[] matrix = {
-        1/3f, 1/3f, 1/3f
+    private static float[,] box = {
+        { 0.111f, 0.111f, 0.111f}, 
+        { 0.111f, 0.111f, 0.111f}, 
+        { 0.111f, 0.111f, 0.111f}, 
     };
 
-    //TODO make it more generic
+    private static float[,] linear3 = {
+        {1/3f, 1/3f, 1/3f}
+    };
+
+    private static float[,] linear5 = {
+        {1/5f, 1/5f, 1/5f, 1/5f, 1/5f}
+    };
+
+    private static float[,] linear7 = {
+        {1/7f, 1/7f, 1/7f, 1/7f, 1/7f, 1/7f, 1/7f}
+    };
+
     public static KZTexture BoxBlur(KZTexture texture) {
+        return BoxBlur(texture, box);
+    }
+    public static KZTexture BoxBlur(KZTexture texture, float[,] kernel) {
         KZTexture buffer = new KZTexture(
                 texture.width, texture.height);
         for(int x=0; x<texture.width; x++) {
             for(int y=0; y<texture.height; y++) {
-                BlurPixel(texture, buffer, x, y);
+                BlurPixel(texture, buffer, x, y, kernel);
             }
         }
         return buffer;
@@ -92,23 +103,28 @@ public class KZTexture {
 
     private static void BlurPixel(
             KZTexture src, KZTexture dest, 
-            int x, int y) {
+            int x, int y, float[,] kernel) {
 
         Color color = new Color(0, 0, 0, 0);
         Color defaultColor = GetColor(src.GetPixel(x, y), 0);
         int index = 0;
-        int r = 0;
-        //for(int r = -1; r <= 1; r++) {
-            for(int s = -1; s <= 1; s++) {
+        int row = kernel.GetLength(0);
+        int col = kernel.GetLength(1);
+        int halfRow = row / 2;
+        int halfCol = col / 2;
+
+        for(int i=0; i<row; i++) {
+            for(int j=0; j<col; j++) {
                 Color c = Mul(
-                        src.GetPixel(x+s, y+r, defaultColor),
-                        matrix[index++]);
+                        src.GetPixel(x - halfCol + j, 
+                                     y - halfRow + i, defaultColor),
+                        kernel[i, j]);
                 color.r += c.r; 
                 color.g += c.g; 
                 color.b += c.b; 
                 color.a += c.a; 
             }
-        //}
+        }
         //Debug.Log(color);
         dest.SetPixel(x, y, color);
     }
