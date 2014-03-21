@@ -21,6 +21,7 @@ public class KZLight : MonoBehaviour {
     public bool enableTint = false;
     public bool enableFallOff = true;
     public bool enableSoftEdges = true;
+    public bool enableShadowTexture = true;
 
     public bool enablePerlin = false;
     public float perlinScale = 5;
@@ -110,7 +111,9 @@ public class KZLight : MonoBehaviour {
         if(enableSoftEdges) ApplySoftEdges(texture, edgeCutout);
         if(enableFallOff) ApplyGradient(texture, alpha);
         if(enablePerlin) ApplyPerlin(texture, perlinStart, perlinScale);
-        ApplyShadow(texture, hits, radius, overflow, shadowBrightness);
+        if(enableShadowTexture) {
+            ApplyShadow(texture, hits, radius, overflow, shadowBrightness);
+        }
 
         for(int i=0; i<iteration; i++) {
             texture = KZTexture.BoxBlur(texture);
@@ -416,8 +419,8 @@ public class KZLight : MonoBehaviour {
             int index = 0;
             for(int i=0; i<numTriangles; i++) {
                 vertices[index++] = Vector3.zero;
-                vertices[index++] = hits[p+1].point - pos;
                 vertices[index++] = hits[p++].point - pos;
+                vertices[index++] = hits[p].point - pos;
             }
             return vertices;
         }
