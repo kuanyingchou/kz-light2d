@@ -198,6 +198,7 @@ public class KZLight : MonoBehaviour {
             lights[i] = new GameObject();
             lights[i].name = "Light-"+i;
             lights[i].transform.parent = transform;
+            lights[i].layer = gameObject.layer; 
 
             MeshRenderer renderer = lights[i].AddComponent<MeshRenderer>();
             renderer.material = lightMaterial;
