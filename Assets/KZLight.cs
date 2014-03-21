@@ -229,8 +229,10 @@ public class KZLight : MonoBehaviour {
             Vector3 diff = new Vector3(
                     Mathf.Cos(angle), 
                     Mathf.Sin(angle), 
-                    transform.position.z + duplicateZDiff * i) * 
+                    0) * 
                     duplicateDiff;
+            diff += new Vector3(0, 0, 
+                    transform.position.z + duplicateZDiff * i);
             lights[i].transform.localPosition = diff;
             angle += TWO_PI / numberOfDuplicates;
         }
