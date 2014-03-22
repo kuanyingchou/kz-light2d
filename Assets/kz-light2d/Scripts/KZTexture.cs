@@ -85,7 +85,7 @@ public class KZTexture {
     };
 
     public static KZTexture BoxBlur(KZTexture texture) {
-        return BoxBlur(texture, linear3);
+        return BoxBlur(texture, box);
     }
     public static KZTexture BoxBlur(KZTexture texture, float[,] kernel) {
         KZTexture buffer = new KZTexture(

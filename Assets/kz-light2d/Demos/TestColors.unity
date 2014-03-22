@@ -107,22 +107,16 @@ MonoBehaviour:
   radius: 15
   lightMaterial: {fileID: 2100000, guid: 5d4d90a40ea633a49866946c1282e080, type: 2}
   color: {r: 0, g: .501960814, b: 1, a: 1}
-  tint: {r: 1, g: .939999998, b: .589999974, a: 1}
+  tint: {r: 1, g: .863342941, b: .0661764741, a: 1}
   alpha: 1
-  shadowBrightness: .200000003
-  enableTint: 0
-  enableFallOff: 1
-  enableSoftEdges: 1
-  enableShadowTexture: 0
+  enableTint: 1
+  enableFallOff: 0
   enablePerlin: 0
   perlinScale: 5
   perlinStart: 5
   textureWidth: 128
   textureHeight: 128
   numberOfRays: 128
-  iteration: 1
-  edgeCutout: 2
-  overflow: .0500000007
   numberOfDuplicates: 1
   duplicateDiff: .5
   duplicateZDiff: .100000001
@@ -249,23 +243,17 @@ MonoBehaviour:
   angleOfView: 30
   radius: 15
   lightMaterial: {fileID: 2100000, guid: 5d4d90a40ea633a49866946c1282e080, type: 2}
-  color: {r: 0, g: .501960814, b: 1, a: 1}
-  tint: {r: 1, g: .939999998, b: .589999974, a: 1}
+  color: {r: .282353073, g: 1, b: .147058845, a: 1}
+  tint: {r: 1, g: .0955882072, b: .937626839, a: 1}
   alpha: 1
-  shadowBrightness: .200000003
-  enableTint: 0
-  enableFallOff: 1
-  enableSoftEdges: 1
-  enableShadowTexture: 0
+  enableTint: 1
+  enableFallOff: 0
   enablePerlin: 0
   perlinScale: 5
   perlinStart: 5
   textureWidth: 128
   textureHeight: 128
   numberOfRays: 128
-  iteration: 1
-  edgeCutout: 2
-  overflow: .0500000007
   numberOfDuplicates: 1
   duplicateDiff: .5
   duplicateZDiff: .100000001

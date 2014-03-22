@@ -16,12 +16,9 @@ public class KZLight : MonoBehaviour {
     private Color oldColor; //used for live update
     public Color tint = new Color(1, .94f, .59f, 1);
     /*[Range(0, 1)]*/ public float alpha = .5f;
-    public float shadowBrightness = 1;
 
     public bool enableTint = false;
     public bool enableFallOff = true;
-    public bool enableSoftEdges = true;
-    public bool enableShadowTexture = true;
 
     public bool enablePerlin = false;
     public float perlinScale = 5;
@@ -30,11 +27,8 @@ public class KZLight : MonoBehaviour {
     //[ advanced properties
     public int textureWidth = 128;
     public int textureHeight = 128;
-    //public int numberOfRays = 128;
-    public float rayDensity = 1;
-    public int iteration = 0;
-    public int edgeCutout = 1; //for blurry edges
-    public float overflow= 0.05f;
+    public int numberOfRays = 128;
+    //public float rayDensity = 1;
 
     //public int eventThreshold = 5; //: TODO
 
@@ -45,18 +39,14 @@ public class KZLight : MonoBehaviour {
     public float duplicateZDiff = .1f;
 
     //[ private 
-    private bool dynamicUpdate = true;
-    private static float TWO_PI = Mathf.PI * 2;
-    private Mesh[] meshes;
-    private GameObject[] lights;
-    private List<RaycastHit> hits = new List<RaycastHit>();
-    private MeshStrategy meshStrategy = 
-            //new SeparateStrategy();
-            new SeparateTextureStrategy();
-            //new CombineStrategy();
-    private KZTexture texture;
-    private Texture2D texture2d;
-    private Dictionary<GameObject, int> seenObjects= 
+    protected bool dynamicUpdate = true;
+    protected static float TWO_PI = Mathf.PI * 2;
+    protected Mesh[] meshes;
+    protected GameObject[] lights;
+    protected List<RaycastHit> hits = new List<RaycastHit>();
+    protected KZTexture texture;
+    protected Texture2D texture2d;
+    protected Dictionary<GameObject, int> seenObjects= 
             new Dictionary<GameObject, int>();
     private Dictionary<GameObject, int> lastSeenObjects= 
             new Dictionary<GameObject, int>();
@@ -84,7 +74,7 @@ public class KZLight : MonoBehaviour {
             Vector3 pos = lights[i].transform.position;
             List<RaycastHit> hits = 
                     CircularScan(pos, direction, angleOfView, 
-                    radius, rayDensity);
+                    radius);
             UpdateLightMesh(meshes[i], pos, hits);
             lightMaterial.mainTexture = CreateTexture(hits);
         }
@@ -99,22 +89,17 @@ public class KZLight : MonoBehaviour {
         return material;
     }
 
-    private Texture2D CreateTexture(List<RaycastHit> hits) {
-        //[ use a smaller width here to create a blurry effect 
+    public virtual KZTexture Filter(KZTexture texture) {
         if(enableTint) ApplyColorWithTint(texture, color, tint, alpha);
         else ApplyColor(texture, color, alpha);
-        if(enableSoftEdges) ApplySoftEdges(texture, edgeCutout);
         if(enableFallOff) ApplyGradient(texture, alpha);
         if(enablePerlin) ApplyPerlin(texture, perlinStart, perlinScale);
-        if(enableShadowTexture) {
-            ApplyShadow(texture, hits, radius, overflow, shadowBrightness);
-        }
+        return texture;
+    }
 
-        for(int i=0; i<iteration; i++) {
-            texture = KZTexture.BoxBlur(texture);
-        }
-
-        texture2d = texture.ToTexture2D(texture2d);
+    private Texture2D CreateTexture(List<RaycastHit> hits) {
+        //[ use a smaller width here to create a blurry effect 
+        texture2d = Filter(texture).ToTexture2D(texture2d);
         return texture2d;
     }
 
@@ -238,8 +223,7 @@ public class KZLight : MonoBehaviour {
             Vector3 center, 
             float angleDeg, 
             float viewDeg, 
-            float radius,
-            float densityDeg) {
+            float radius) {
 
         hits.Clear();
         RaycastHit hit;
@@ -249,8 +233,8 @@ public class KZLight : MonoBehaviour {
         float start = angleRad - viewRad * .5f;
         float end = angleRad + viewRad * .5f;
 
-        float density = densityDeg * Mathf.Deg2Rad; //TODO
-        for(float angle = end; angle>=start; angle -= density) {
+        float angle = end;
+        for(int i=0; i<numberOfRays; i++) {
             Vector3 d= ToVector3(angle); 
             if(Physics.Raycast(center, d, out hit, 
                     Mathf.Abs(radius))) {
@@ -262,7 +246,7 @@ public class KZLight : MonoBehaviour {
                 h.distance = radius;
                 hits.Add(h);
             }
-            //angle += viewRad / (numberOfRays-1);
+            angle -= viewRad / (numberOfRays-1);
         }
 
         //TODO: block check
@@ -352,12 +336,12 @@ public class KZLight : MonoBehaviour {
         }
 
         mesh.Clear();
-        Vector3[] vertices = meshStrategy.CreateVertices(
-                hits, pos, direction, angleOfView, radius, rayDensity);
+        Vector3[] vertices = CreateVertices(
+                hits, pos, direction, angleOfView, radius);
         mesh.vertices = vertices;
-        mesh.triangles = meshStrategy.CreateTriangles(vertices);
-        mesh.normals = meshStrategy.CreateNormals(vertices);
-        mesh.uv = meshStrategy.CreateUV(vertices, hits, radius);
+        mesh.triangles = CreateTriangles(vertices);
+        mesh.normals = CreateNormals(vertices);
+        mesh.uv = CreateUV(vertices, hits, radius);
 
         //mesh.RecalculateNormals();
         //mesh.RecalculateBounds();
@@ -376,195 +360,54 @@ public class KZLight : MonoBehaviour {
         //    Debug.DrawLine(hits[hits.Count -1], hits[0], Color.red);
         //}
     }
-    private static void ApplyShadow(
-            KZTexture texture, List<RaycastHit> hits, 
-            float range, float overflow, float brightness) {
-        if(hits.Count == 0) return;        
-        for(int x=0; x<texture.width; x++) {
-            int hitIndex = 
-                    Mathf.RoundToInt(
-                        Mathf.Min(
-                            1,
-                            (float)x / (texture.width-1) 
-                        ) * (hits.Count - 1)
-                    );
-            int hy = 
-                    Mathf.RoundToInt(
-                        Mathf.Min(
-                            1,
-                            (hits[hitIndex].distance + overflow) / range
-                        ) * (texture.height - 1)
-                    );
-            for(int i=hy; i<texture.height; i++) {
-                Color original = texture.GetPixel(x, i);
-                //Color shadowColor = KZTexture.GetColor(original, 0);
-                Color shadowColor = 
-                        //Color.black
-                        KZTexture.GetColor(
-                            original, 
-                            original.a * (i/(texture.height-1f) * brightness)
-                        );
-                texture.SetPixel(x, i, shadowColor);
-            }
+    public virtual Vector3[] CreateVertices(
+            List<RaycastHit> hits, Vector3 pos, 
+            float direction, float angleOfView, 
+            float range) {
+
+        int numTriangles = hits.Count - 1;
+        Vector3[] vertices = new Vector3[numTriangles * 3];
+        int p = 0;
+        int index = 0;
+        for(int i=0; i<numTriangles; i++) {
+            vertices[index++] = Vector3.zero;
+            vertices[index++] = hits[p++].point - pos;
+            vertices[index++] = hits[p].point - pos;
         }
+        return vertices;
     }
-
-    abstract class MeshStrategy {
-
-        public abstract Vector3[] CreateVertices(
-                List<RaycastHit> hits, Vector3 pos,
-                float direction, float angleOfView, 
-                float range, float densityDeg);
-
-        public abstract int[] CreateTriangles(Vector3[] vertices); 
-
-        public Vector3[] CreateNormals(Vector3[] vertices) {
-            Vector3[] normals = new Vector3[vertices.Length];
-            for(int i=0; i<normals.Length; i++) {
-                normals[i] = -Vector3.forward;
-            }
-            return normals;
+    public virtual int[] CreateTriangles(Vector3[] vertices) {
+        int[] triangles = new int[vertices.Length];
+        for(int i=0; i<triangles.Length; i++) {
+            triangles[i] = i;
         }
-
-        public abstract Vector2[] CreateUV(
-                Vector3[] vertices, List<RaycastHit> hits, float range);
+        return triangles;
     }
-    class SeparateStrategy : MeshStrategy {
-        public override Vector3[] CreateVertices(
-                List<RaycastHit> hits, Vector3 pos, 
-                float direction, float angleOfView, 
-                float range, float densityDeg) {
-
-            int numTriangles = hits.Count - 1;
-            Vector3[] vertices = new Vector3[numTriangles * 3];
-            int p = 0;
-            int index = 0;
-            for(int i=0; i<numTriangles; i++) {
-                vertices[index++] = Vector3.zero;
-                vertices[index++] = hits[p++].point - pos;
-                vertices[index++] = hits[p].point - pos;
-            }
-            return vertices;
+    public virtual Vector2[] CreateUV(
+            Vector3[] vertices, List<RaycastHit> hits, float range) {
+        Vector2[] uvs = new Vector2[vertices.Length];
+        float x = 1;
+        int index = 0;
+        int hitIndex = 1;
+        //float span = uvs.Length / 3; 
+        float y = hits[0].distance / range;
+        while(index < uvs.Length) {
+            uvs[index++] = new Vector2(x, 0);
+            uvs[index++] = new Vector2(x, y);
+            x -= 1f / uvs.Length;
+            y = hits[hitIndex++].distance / range;
+            //if(x < 0) Debug.Log("!!! x = "+x);
+            uvs[index++] = new Vector2(x, y);
         }
-        public override int[] CreateTriangles(Vector3[] vertices) {
-            int[] triangles = new int[vertices.Length];
-            for(int i=0; i<triangles.Length; i++) {
-                triangles[i] = i;
-            }
-            return triangles;
-        }
-        public override Vector2[] CreateUV(
-                Vector3[] vertices, List<RaycastHit> hits, float range) {
-            Vector2[] uvs = new Vector2[vertices.Length];
-            float x = 1;
-            int index = 0;
-            int hitIndex = 1;
-            //float span = uvs.Length / 3; 
-            float y = hits[0].distance / range;
-            while(index < uvs.Length) {
-                uvs[index++] = new Vector2(x, 0);
-                uvs[index++] = new Vector2(x, y);
-                x -= 1f / uvs.Length;
-                y = hits[hitIndex++].distance / range;
-                //if(x < 0) Debug.Log("!!! x = "+x);
-                uvs[index++] = new Vector2(x, y);
-            }
-            return uvs;
-        }
+        return uvs;
     }
-
-    class SeparateTextureStrategy : SeparateStrategy {
-
-        public override Vector3[] CreateVertices(
-                List<RaycastHit> hits, Vector3 pos, 
-                float direction, float angleOfView, 
-                float range, float densityDeg) {
-
-            float angleRad = direction * Mathf.Deg2Rad;
-            float viewRad = angleOfView * Mathf.Deg2Rad;
-            float start = angleRad - viewRad * .5f;
-            float end = angleRad + viewRad * .5f;
-
-            float density = densityDeg * Mathf.Deg2Rad;
-            int destIndex= 0;
-            List<Vector3> dests = new List<Vector3>();
-
-            for(float angle = end; angle > start; angle -= density) {
-                Vector3 d= new Vector3(
-                        Mathf.Cos(angle), 
-                        Mathf.Sin(angle), 
-                        0);
-                dests.Add(d * range);
-            }
-
-            int numTriangles = dests.Count - 1;
-            Vector3[] vertices = new Vector3[numTriangles * 3];
-            int p = 0;
-            int index = 0;
-            for(int i=0; i<numTriangles; i++) {
-                vertices[index++] = Vector3.zero;
-                vertices[index++] = dests[p++];
-                vertices[index++] = dests[p];
-            }
-            return vertices;
+    public virtual Vector3[] CreateNormals(Vector3[] vertices) {
+        Vector3[] normals = new Vector3[vertices.Length];
+        for(int i=0; i<normals.Length; i++) {
+            normals[i] = -Vector3.forward;
         }
-        public override Vector2[] CreateUV(
-                Vector3[] vertices, List<RaycastHit> hits, float range) {
-            Vector2[] uvs = new Vector2[vertices.Length];
-            int index = 0;
-            float span = uvs.Length / 3; 
-            float x = 0;
-            while(index < uvs.Length) {
-                //uvs[index++] = Vector2.zero;
-                uvs[index++] = new Vector2(x, 0);
-                uvs[index++] = new Vector2(x, 1);
-                x += 1f / span;
-                //if(x < 0) Debug.Log("!!! x = "+x);
-                uvs[index++] = new Vector2(x, 1);
-            }
-            return uvs;
-        }
+        return normals;
     }
-
-    class CombineStrategy : MeshStrategy {
-        public override Vector3[] CreateVertices(
-                List<RaycastHit> hits, Vector3 pos,
-                float direction, float angleOfView, 
-                float range, float densityDeg) {
-            Vector3[] vertices = new Vector3[hits.Count + 1];
-            vertices[0] = Vector3.zero;
-            for(int i=1; i<vertices.Length; i++) {
-                vertices[i] = hits[i-1].point - pos;
-            }
-            return vertices;
-        }
-        public override int[] CreateTriangles(Vector3[] vertices) {
-            int numTriangles = vertices.Length - 2;
-            int index = 0;
-            int p = 1, q = 2;
-            int[] triangles = new int[numTriangles * 3];
-            for(int i=0; i<numTriangles; i++) {
-                triangles[index++] = 0;
-                triangles[index++] = p++;
-                triangles[index++] = q++;
-                //if(q >= vertices.Length) q = 1;
-            }
-            return triangles;
-        }
-
-        public override Vector2[] CreateUV(
-                Vector3[] vertices, List<RaycastHit> hits, float range) {
-            Vector2[] uv = new Vector2[vertices.Length];
-            uv[0] = Vector2.zero;
-            for(int i=1; i<uv.Length; i++) {
-                uv[i] = new Vector2(
-                        hits[i-1].distance / range, 0);
-            }
-            return uv;
-        }
-    }
-
-
 
     //[ utilities
     private float GetAngle(Vector3 dir) {
