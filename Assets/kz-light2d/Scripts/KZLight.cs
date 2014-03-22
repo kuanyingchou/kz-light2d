@@ -33,7 +33,7 @@ public class KZLight : MonoBehaviour {
     //public int numberOfRays = 128;
     public float rayDensity = 1;
     public int iteration = 0;
-    public int edgeCutout = 2; //for blurry edges
+    public int edgeCutout = 1; //for blurry edges
     public float overflow= 0.05f;
 
     //public int eventThreshold = 5; //: TODO
@@ -51,8 +51,8 @@ public class KZLight : MonoBehaviour {
     private GameObject[] lights;
     private List<RaycastHit> hits = new List<RaycastHit>();
     private MeshStrategy meshStrategy = 
-            new SeparateStrategy();
-            //new SeparateTextureStrategy();
+            //new SeparateStrategy();
+            new SeparateTextureStrategy();
             //new CombineStrategy();
     private KZTexture texture;
     private Texture2D texture2d;
@@ -353,7 +353,7 @@ public class KZLight : MonoBehaviour {
 
         mesh.Clear();
         Vector3[] vertices = meshStrategy.CreateVertices(
-                hits, pos, direction, angleOfView, radius);
+                hits, pos, direction, angleOfView, radius, rayDensity);
         mesh.vertices = vertices;
         mesh.triangles = meshStrategy.CreateTriangles(vertices);
         mesh.normals = meshStrategy.CreateNormals(vertices);
@@ -396,8 +396,7 @@ public class KZLight : MonoBehaviour {
                         ) * (texture.height - 1)
                     );
             for(int i=hy; i<texture.height; i++) {
-                int xIndex = texture.width - 1 - x;
-                Color original = texture.GetPixel(xIndex, i);
+                Color original = texture.GetPixel(x, i);
                 //Color shadowColor = KZTexture.GetColor(original, 0);
                 Color shadowColor = 
                         //Color.black
@@ -405,7 +404,7 @@ public class KZLight : MonoBehaviour {
                             original, 
                             original.a * (i/(texture.height-1f) * brightness)
                         );
-                texture.SetPixel(xIndex, i, shadowColor);
+                texture.SetPixel(x, i, shadowColor);
             }
         }
     }
@@ -414,7 +413,8 @@ public class KZLight : MonoBehaviour {
 
         public abstract Vector3[] CreateVertices(
                 List<RaycastHit> hits, Vector3 pos,
-                float direction, float angleOfView, float range);
+                float direction, float angleOfView, 
+                float range, float densityDeg);
 
         public abstract int[] CreateTriangles(Vector3[] vertices); 
 
@@ -432,7 +432,9 @@ public class KZLight : MonoBehaviour {
     class SeparateStrategy : MeshStrategy {
         public override Vector3[] CreateVertices(
                 List<RaycastHit> hits, Vector3 pos, 
-                float direction, float angleOfView, float range) {
+                float direction, float angleOfView, 
+                float range, float densityDeg) {
+
             int numTriangles = hits.Count - 1;
             Vector3[] vertices = new Vector3[numTriangles * 3];
             int p = 0;
@@ -475,25 +477,27 @@ public class KZLight : MonoBehaviour {
 
         public override Vector3[] CreateVertices(
                 List<RaycastHit> hits, Vector3 pos, 
-                float direction, float angleOfView, float range) {
+                float direction, float angleOfView, 
+                float range, float densityDeg) {
 
             float angleRad = direction * Mathf.Deg2Rad;
             float viewRad = angleOfView * Mathf.Deg2Rad;
             float start = angleRad - viewRad * .5f;
-            //float end = angleRad + viewRad * .5f;
+            float end = angleRad + viewRad * .5f;
 
-            Vector3[] dests = new Vector3[hits.Count];
-            float angle = start;
-            for(int i=0; i<dests.Length; i++) {
+            float density = densityDeg * Mathf.Deg2Rad;
+            int destIndex= 0;
+            List<Vector3> dests = new List<Vector3>();
+
+            for(float angle = end; angle > start; angle -= density) {
                 Vector3 d= new Vector3(
                         Mathf.Cos(angle), 
                         Mathf.Sin(angle), 
                         0);
-                dests[dests.Length - 1 - i] = d * range;
-                angle += viewRad / dests.Length;
+                dests.Add(d * range);
             }
 
-            int numTriangles = dests.Length - 1;
+            int numTriangles = dests.Count - 1;
             Vector3[] vertices = new Vector3[numTriangles * 3];
             int p = 0;
             int index = 0;
@@ -523,8 +527,10 @@ public class KZLight : MonoBehaviour {
     }
 
     class CombineStrategy : MeshStrategy {
-        public override Vector3[] CreateVertices(List<RaycastHit> hits, Vector3 pos,
-                float direction, float angleOfView, float range) {
+        public override Vector3[] CreateVertices(
+                List<RaycastHit> hits, Vector3 pos,
+                float direction, float angleOfView, 
+                float range, float densityDeg) {
             Vector3[] vertices = new Vector3[hits.Count + 1];
             vertices[0] = Vector3.zero;
             for(int i=1; i<vertices.Length; i++) {
