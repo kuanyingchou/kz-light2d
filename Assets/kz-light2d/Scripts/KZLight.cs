@@ -30,7 +30,8 @@ public class KZLight : MonoBehaviour {
     //[ advanced properties
     public int textureWidth = 128;
     public int textureHeight = 128;
-    public int numberOfRays = 128;
+    //public int numberOfRays = 128;
+    public float rayDensity = 1;
     public int iteration = 0;
     public int edgeCutout = 2; //for blurry edges
     public float overflow= 0.05f;
@@ -46,19 +47,12 @@ public class KZLight : MonoBehaviour {
     //[ private 
     private bool dynamicUpdate = true;
     private static float TWO_PI = Mathf.PI * 2;
-    private static string DEFAULT_SHADER = 
-            //"Diffuse";
-            //"Unlit/Transparent";
-            //"Custom/TransparentSingleColorShader";
-            //"Particles/Additive";
-            "Mobile/Particles/Additive";
-            //"Somian/Unlit/Transparent";
     private Mesh[] meshes;
     private GameObject[] lights;
     private List<RaycastHit> hits = new List<RaycastHit>();
     private MeshStrategy meshStrategy = 
-            //new SeparateStrategy();
-            new SeparateTextureStrategy();
+            new SeparateStrategy();
+            //new SeparateTextureStrategy();
             //new CombineStrategy();
     private KZTexture texture;
     private Texture2D texture2d;
@@ -89,7 +83,8 @@ public class KZLight : MonoBehaviour {
         for(int i=0; i<numberOfDuplicates; i++) {
             Vector3 pos = lights[i].transform.position;
             List<RaycastHit> hits = 
-                    Scan(pos, direction, angleOfView, radius);
+                    CircularScan(pos, direction, angleOfView, 
+                    radius, rayDensity);
             UpdateLightMesh(meshes[i], pos, hits);
             lightMaterial.mainTexture = CreateTexture(hits);
         }
@@ -239,9 +234,12 @@ public class KZLight : MonoBehaviour {
         }
     }
 
-    private List<RaycastHit> Scan(
-            Vector3 lightSource, 
-            float angleDeg, float viewDeg, float range) {
+    private List<RaycastHit> CircularScan(
+            Vector3 center, 
+            float angleDeg, 
+            float viewDeg, 
+            float radius,
+            float densityDeg) {
 
         hits.Clear();
         RaycastHit hit;
@@ -249,28 +247,28 @@ public class KZLight : MonoBehaviour {
         float angleRad = angleDeg * Mathf.Deg2Rad;
         float viewRad = viewDeg * Mathf.Deg2Rad;
         float start = angleRad - viewRad * .5f;
-        //float end = angleRad + viewRad * .5f;
+        float end = angleRad + viewRad * .5f;
 
-        float angle = start;
-        for(int i=0; i<numberOfRays; i++) {
+        float density = densityDeg * Mathf.Deg2Rad; //TODO
+        for(float angle = end; angle>=start; angle -= density) {
             Vector3 d= ToVector3(angle); 
-            if(Physics.Raycast(lightSource, d, out hit, 
-                    Mathf.Abs(range))) {
+            if(Physics.Raycast(center, d, out hit, 
+                    Mathf.Abs(radius))) {
                 hits.Add(hit);
                 Track(hit.transform.gameObject);
             } else {
                 RaycastHit h = new RaycastHit();
-                h.point = lightSource + d*range;
-                h.distance = range;
+                h.point = center + d*radius;
+                h.distance = radius;
                 hits.Add(h);
             }
-            angle += viewRad / numberOfRays;
+            //angle += viewRad / (numberOfRays-1);
         }
 
         //TODO: block check
         //hits = SimplifyHits(hits); 
         HandleEvents();
-        if(debug) DrawHits(lightSource, hits);
+        if(debug) DrawHits(center, hits);
         //hits.Reverse(); //TODO: remove this
         return hits;
     }
@@ -412,16 +410,27 @@ public class KZLight : MonoBehaviour {
         }
     }
 
-    interface MeshStrategy {
-        Vector3[] CreateVertices(List<RaycastHit> hits, Vector3 pos,
+    abstract class MeshStrategy {
+
+        public abstract Vector3[] CreateVertices(
+                List<RaycastHit> hits, Vector3 pos,
                 float direction, float angleOfView, float range);
-        int[] CreateTriangles(Vector3[] vertices); 
-        Vector3[] CreateNormals(Vector3[] vertices);
-        Vector2[] CreateUV(
+
+        public abstract int[] CreateTriangles(Vector3[] vertices); 
+
+        public Vector3[] CreateNormals(Vector3[] vertices) {
+            Vector3[] normals = new Vector3[vertices.Length];
+            for(int i=0; i<normals.Length; i++) {
+                normals[i] = -Vector3.forward;
+            }
+            return normals;
+        }
+
+        public abstract Vector2[] CreateUV(
                 Vector3[] vertices, List<RaycastHit> hits, float range);
     }
     class SeparateStrategy : MeshStrategy {
-        public virtual Vector3[] CreateVertices(
+        public override Vector3[] CreateVertices(
                 List<RaycastHit> hits, Vector3 pos, 
                 float direction, float angleOfView, float range) {
             int numTriangles = hits.Count - 1;
@@ -435,21 +444,14 @@ public class KZLight : MonoBehaviour {
             }
             return vertices;
         }
-        public int[] CreateTriangles(Vector3[] vertices) {
+        public override int[] CreateTriangles(Vector3[] vertices) {
             int[] triangles = new int[vertices.Length];
             for(int i=0; i<triangles.Length; i++) {
                 triangles[i] = i;
             }
             return triangles;
         }
-        public Vector3[] CreateNormals(Vector3[] vertices) {
-            Vector3[] normals = new Vector3[vertices.Length];
-            for(int i=0; i<normals.Length; i++) {
-                normals[i] = -Vector3.forward;
-            }
-            return normals;
-        }
-        public virtual Vector2[] CreateUV(
+        public override Vector2[] CreateUV(
                 Vector3[] vertices, List<RaycastHit> hits, float range) {
             Vector2[] uvs = new Vector2[vertices.Length];
             float x = 1;
@@ -521,7 +523,7 @@ public class KZLight : MonoBehaviour {
     }
 
     class CombineStrategy : MeshStrategy {
-        public Vector3[] CreateVertices(List<RaycastHit> hits, Vector3 pos,
+        public override Vector3[] CreateVertices(List<RaycastHit> hits, Vector3 pos,
                 float direction, float angleOfView, float range) {
             Vector3[] vertices = new Vector3[hits.Count + 1];
             vertices[0] = Vector3.zero;
@@ -530,7 +532,7 @@ public class KZLight : MonoBehaviour {
             }
             return vertices;
         }
-        public int[] CreateTriangles(Vector3[] vertices) {
+        public override int[] CreateTriangles(Vector3[] vertices) {
             int numTriangles = vertices.Length - 2;
             int index = 0;
             int p = 1, q = 2;
@@ -544,15 +546,7 @@ public class KZLight : MonoBehaviour {
             return triangles;
         }
 
-        public Vector3[] CreateNormals(Vector3[] vertices) {
-            Vector3[] normals = new Vector3[vertices.Length];
-            for(int i=0; i<normals.Length; i++) {
-                normals[i] = -Vector3.forward;
-            }
-            return normals;
-        }
-
-        public Vector2[] CreateUV(
+        public override Vector2[] CreateUV(
                 Vector3[] vertices, List<RaycastHit> hits, float range) {
             Vector2[] uv = new Vector2[vertices.Length];
             uv[0] = Vector2.zero;
