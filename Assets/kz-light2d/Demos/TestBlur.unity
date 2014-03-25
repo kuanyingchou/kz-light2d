@@ -327,7 +327,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1494581738
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -347,21 +347,15 @@ MonoBehaviour:
   color: {r: 1, g: 1, b: 1, a: 1}
   tint: {r: 1, g: .939999998, b: .589999974, a: 1}
   alpha: 1
-  shadowBrightness: .200000003
   enableTint: 0
   enableFallOff: 1
-  enableSoftEdges: 0
-  enableShadowTexture: 1
   enablePerlin: 0
   perlinScale: 5
   perlinStart: 5
   textureWidth: 128
   textureHeight: 128
   numberOfRays: 128
-  iteration: 0
-  edgeCutout: 2
-  overflow: .0500000007
-  numberOfDuplicates: 1
+  numberOfDuplicates: 2
   duplicateDiff: .5
   duplicateZDiff: .100000001
 --- !u!4 &1494581739
@@ -410,22 +404,16 @@ MonoBehaviour:
   color: {r: 1, g: 1, b: 1, a: 1}
   tint: {r: 1, g: .939999998, b: .589999974, a: 1}
   alpha: 1
-  shadowBrightness: .200000003
   enableTint: 0
   enableFallOff: 1
-  enableSoftEdges: 0
-  enableShadowTexture: 1
   enablePerlin: 0
   perlinScale: 5
   perlinStart: 5
   textureWidth: 128
   textureHeight: 128
   numberOfRays: 128
-  iteration: 0
-  edgeCutout: 2
-  overflow: .0500000007
   numberOfDuplicates: 1
-  duplicateDiff: .5
+  duplicateDiff: .100000001
   duplicateZDiff: .100000001
 --- !u!4 &1604864936
 Transform:

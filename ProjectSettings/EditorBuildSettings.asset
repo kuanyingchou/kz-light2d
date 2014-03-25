@@ -7,9 +7,17 @@ EditorBuildSettings:
   m_Scenes:
   - enabled: 0
     path: Assets/kz-light2d/Demos/Test2Lights.unity
-  - enabled: 1
+  - enabled: 0
     path: Assets/kz-light2d/Demos/TestBlur.unity
   - enabled: 0
     path: Assets/kz-light2d/Demos/TestPerlin.unity
   - enabled: 0
     path: Assets/kz-light2d/Demos/TestColors.unity
+  - enabled: 0
+    path: Assets/TestFrameRate.unity
+  - enabled: 0
+    path: Assets/kz-light2d/Demos/TestBasic.unity
+  - enabled: 0
+    path: Assets/kz-light2d/Demos/TestBlur.unity
+  - enabled: 1
+    path: Assets/kz-light2d/Demos/TestTextureShadow.unity

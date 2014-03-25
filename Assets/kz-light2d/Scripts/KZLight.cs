@@ -6,43 +6,63 @@ using System.Linq;
 public class KZLight : MonoBehaviour {
     public bool debug = true;
 
+    ////TODO
+    //class Property<T> {
+    //    private static List<Property<>> properties = new List<Property<>>();
+    //    private static void SynchronizeAll() {
+    //        foreach(Property<> p in properties) {
+    //            p.Synchronize();
+    //        }
+    //    }
+    //    private T val;
+    //    private T oldVal;
+    //    public void Synchronize() {
+    //        oldVal = val;
+    //    }
+    //}
+
     //[ basic properties
     /*[Range(-180, 180)]*/ public float direction = 0; 
     /*[Range(0, 720)]*/ public float angleOfView = 90;
     /*[Range(1, 20)]*/ public float radius = 10; 
     
     public Material lightMaterial;
+    private Material oldLightMaterial;
     public Color color = new Color(1, 1, 1, 1); 
     private Color oldColor; //used for live update
     public Color tint = new Color(1, .94f, .59f, 1);
+    private Color oldTint; //used for live update
+
     /*[Range(0, 1)]*/ public float alpha = .5f;
+    private float oldAlpha;
 
     public bool enableTint = false;
+    private bool oldEnableTint;
     public bool enableFallOff = true;
+    private bool oldEnableFallOff;
 
     public bool enablePerlin = false;
+    private bool oldEnablePerlin;
     public float perlinScale = 5;
+    private float oldPerlinScale;
     public float perlinStart = 5;
+    private float oldPerlinStart;
 
     //[ advanced properties
     public int textureWidth = 128;
+    private int oldTextureWidth;
     public int textureHeight = 128;
+    private int oldTextureHeight;
     public int numberOfRays = 128;
     //public float rayDensity = 1;
 
     //public int eventThreshold = 5; //: TODO
 
-    /*[Range(1, 10)]*/ public int numberOfDuplicates = 1;
-    private int oldNumberOfDuplicates;
-
-    /*[Range(0, 5)]*/ public float duplicateDiff = .5f;
-    public float duplicateZDiff = .1f;
-
     //[ private 
     protected bool dynamicUpdate = true;
     protected static float TWO_PI = Mathf.PI * 2;
-    protected Mesh[] meshes;
-    protected GameObject[] lights;
+    protected Mesh mesh;
+    protected GameObject light;
     protected List<RaycastHit> hits = new List<RaycastHit>();
     protected KZTexture texture;
     protected Texture2D texture2d;
@@ -52,42 +72,110 @@ public class KZLight : MonoBehaviour {
             new Dictionary<GameObject, int>();
 
     public void Start() {
-        if(lightMaterial == null) {
-            //lightMaterial = CreateMaterial();
-            Debug.LogError("Please assign a material!");
-            return;
-        }
-        lightMaterial = CreateMaterial(lightMaterial);
-        UpdateProperties();
-        
+        Initialize();
+
+        UpdatePosition();
+        UpdateMesh();
         //if(debug) UnitTest();
     }
 
-    public void LateUpdate() {
-        if(lightMaterial == null) return;
-
-        if(dynamicUpdate) UpdateProperties();
-
-        SetLightPositions();
-
-        for(int i=0; i<numberOfDuplicates; i++) {
-            Vector3 pos = lights[i].transform.position;
-            List<RaycastHit> hits = 
-                    CircularScan(pos, direction, angleOfView, 
-                    radius);
-            UpdateLightMesh(meshes[i], pos, hits);
-            lightMaterial.mainTexture = CreateTexture(hits);
-        }
+    public virtual void LateUpdate() {
+        if(dynamicUpdate && IsDirty()) Reinitialize();
+        UpdatePosition();
+        UpdateMesh();
     }
 
     //[ private
 
-    private static Material CreateMaterial(Material m) {
-        //return m;
-        //Material material = (Material)GameObject.Instantiate(m);
-        Material material = new Material(m);
-        return material;
+    private void UpdateMesh() {
+        Vector3 pos = light.transform.position;
+        hits = CircularScan(pos, direction, angleOfView, radius);
+        UpdateLightMesh(mesh, pos, hits);
     }
+
+    protected bool IsDirty() {
+        if(oldColor != color ||
+           oldTint != tint ||
+           oldTextureWidth != textureWidth ||
+           oldTextureHeight != textureHeight ||
+           oldLightMaterial != lightMaterial ||
+           oldAlpha != alpha ||
+           oldEnableTint != enableTint ||
+           oldEnableFallOff != enableFallOff ||
+           oldEnablePerlin != enablePerlin ||
+           oldPerlinScale != perlinScale || 
+           oldPerlinStart != perlinStart) {
+            //Debug.Log("is dirty!");
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private void Initialize() {
+        if(light != null) {
+            GameObject.DestroyImmediate(light);
+        }
+        light = new GameObject();
+        light.name = "Light";
+        light.transform.parent = transform;
+        light.layer = gameObject.layer; 
+
+        MeshRenderer renderer = light.AddComponent<MeshRenderer>();
+
+        MeshFilter filter = light.AddComponent<MeshFilter>();
+        mesh = filter.mesh;
+        //mesh.MarkDynamic();
+        Reinitialize();
+    }
+
+    protected void Reinitialize() {
+        if(lightMaterial == null) {
+            throw new System.Exception("Please assign a material!");
+        }
+        lightMaterial = new Material(lightMaterial);
+        light.GetComponent<MeshRenderer>().material = lightMaterial;
+
+        texture = new KZTexture(textureWidth, textureHeight);
+        texture2d = new Texture2D(textureWidth, textureHeight, 
+                TextureFormat.ARGB32, false);
+                //TextureFormat.RGB24, false);
+        texture2d.wrapMode = TextureWrapMode.Clamp;
+        lightMaterial.mainTexture = CreateTexture();
+
+        oldColor = color;
+        oldTint = tint;
+        oldTextureWidth = textureWidth;
+        oldTextureHeight = textureHeight;
+        oldLightMaterial = lightMaterial;
+        oldAlpha = alpha;
+        oldEnableTint = enableTint;
+        oldEnableFallOff = enableFallOff;
+        oldEnablePerlin = enablePerlin;
+        oldPerlinScale = perlinScale;
+        oldPerlinStart = perlinStart;
+    }
+    
+    protected void UpdatePosition() {
+        light.transform.localPosition = Vector3.zero;
+    }
+
+    /*
+    private void PlaceLightsInCircle() {
+        float angle = 0;
+        for(int i=0; i<numberOfDuplicates; i++) {
+            Vector3 diff = new Vector3(
+                    Mathf.Cos(angle), 
+                    Mathf.Sin(angle), 
+                    0) * 
+                    duplicateDiff;
+            diff += new Vector3(0, 0, 
+                    transform.position.z + duplicateZDiff * i);
+            lights[i].transform.localPosition = diff;
+            angle += TWO_PI / numberOfDuplicates;
+        }
+    }
+    */
 
     public virtual KZTexture Filter(KZTexture texture) {
         if(enableTint) ApplyColorWithTint(texture, color, tint, alpha);
@@ -97,7 +185,7 @@ public class KZLight : MonoBehaviour {
         return texture;
     }
 
-    private Texture2D CreateTexture(List<RaycastHit> hits) {
+    protected Texture2D CreateTexture() {
         //[ use a smaller width here to create a blurry effect 
         texture2d = Filter(texture).ToTexture2D(texture2d);
         return texture2d;
@@ -121,17 +209,6 @@ public class KZLight : MonoBehaviour {
                 
     }
 
-    private static void ApplySoftEdges(
-            KZTexture texture, int numOfPixels) {
-        for(int y=0; y<texture.height; y++) {
-            Color color = KZTexture.GetColor(texture.GetPixel(0, y), 0);
-            for(int i=0; i<numOfPixels; i++) {
-                texture.SetPixel(i, y, color);
-                texture.SetPixel(texture.width - 1 - i, y, color);
-            }
-        }
-    }
-
     private static void ApplyGradient(KZTexture texture, float maxAlpha) {
         for(int y=0; y<texture.height; y++) {
             float a = maxAlpha - ((float)y/(texture.height-1) * maxAlpha);
@@ -153,69 +230,6 @@ public class KZLight : MonoBehaviour {
                 texture.SetPixel(x, y, new Color(
                         c.r, c.g, c.b, Mathf.Min(1, perlin * c.a)));
             }
-        }
-    }
-
-    private void UpdateProperties() {
-        if(IsDirty()) {
-            Initialize();
-        }
-    }
-
-    private bool IsDirty() {
-        return oldNumberOfDuplicates != numberOfDuplicates;
-    }
-
-    private void Initialize() {
-        if(lights != null) {
-            for(int i=0; i<lights.Length; i++) {
-                GameObject.DestroyImmediate(lights[i]);
-            }
-        }
-        lights = new GameObject[numberOfDuplicates];
-        meshes = new Mesh[numberOfDuplicates];
-        for(int i=0; i<numberOfDuplicates; i++) {
-            lights[i] = new GameObject();
-            lights[i].name = "Light-"+i;
-            lights[i].transform.parent = transform;
-            lights[i].layer = gameObject.layer; 
-
-            MeshRenderer renderer = lights[i].AddComponent<MeshRenderer>();
-            renderer.material = lightMaterial;
-
-            MeshFilter filter = lights[i].AddComponent<MeshFilter>();
-            meshes[i] = filter.mesh;
-            //meshes[i].MarkDynamic();
-        }
-        oldNumberOfDuplicates = numberOfDuplicates;
-
-        texture = new KZTexture(textureWidth, textureHeight);
-        texture2d = new Texture2D(textureWidth, textureHeight, 
-                TextureFormat.ARGB32, false);
-                //TextureFormat.RGB24, false);
-        texture2d.wrapMode = TextureWrapMode.Clamp;
-    }
-    
-    private void SetLightPositions() {
-        if(numberOfDuplicates == 1) {
-            lights[0].transform.localPosition = Vector3.zero;
-        } else {
-            PlaceLightsInCircle();
-        } 
-    }
-
-    private void PlaceLightsInCircle() {
-        float angle = 0;
-        for(int i=0; i<numberOfDuplicates; i++) {
-            Vector3 diff = new Vector3(
-                    Mathf.Cos(angle), 
-                    Mathf.Sin(angle), 
-                    0) * 
-                    duplicateDiff;
-            diff += new Vector3(0, 0, 
-                    transform.position.z + duplicateZDiff * i);
-            lights[i].transform.localPosition = diff;
-            angle += TWO_PI / numberOfDuplicates;
         }
     }
 
@@ -335,7 +349,7 @@ public class KZLight : MonoBehaviour {
             DrawLightPolygon(hits);
         }
 
-        mesh.Clear();
+        //mesh.Clear();
         Vector3[] vertices = CreateVertices(
                 hits, pos, direction, angleOfView, radius);
         mesh.vertices = vertices;

@@ -10,6 +10,11 @@ public class KZTexLight : KZLight {
     public bool enableSoftEdges = true;
     public int edgeCutout = 1; //for blurry edges
 
+    public override void LateUpdate() {
+        if(dynamicUpdate && IsDirty()) Reinitialize();
+        UpdatePosition();
+        lightMaterial.mainTexture = CreateTexture();
+    }
     public override Vector3[] CreateVertices(
             List<RaycastHit> hits, Vector3 pos, 
             float direction, float angleOfView, 
@@ -66,6 +71,9 @@ public class KZTexLight : KZLight {
         if(enableShadowTexture) {
             ApplyShadow(texture, hits, radius, overflow, shadowBrightness);
         }
+        if(enableSoftEdges) {
+            ApplySoftEdges(texture, edgeCutout);
+        }
         for(int i=0; i<iteration; i++) {
             texture = KZTexture.BoxBlur(texture);
         }
@@ -100,6 +108,17 @@ public class KZTexLight : KZLight {
                             original.a * (i/(texture.height-1f) * brightness)
                         );
                 texture.SetPixel(x, i, shadowColor);
+            }
+        }
+    }
+
+    private static void ApplySoftEdges(
+            KZTexture texture, int numOfPixels) {
+        for(int y=0; y<texture.height; y++) {
+            Color color = KZTexture.GetColor(texture.GetPixel(0, y), 0);
+            for(int i=0; i<numOfPixels; i++) {
+                texture.SetPixel(i, y, color);
+                texture.SetPixel(texture.width - 1 - i, y, color);
             }
         }
     }

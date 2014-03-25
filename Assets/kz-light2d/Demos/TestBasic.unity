@@ -85,6 +85,7 @@ GameObject:
   - 33: {fileID: 32170699}
   - 65: {fileID: 32170698}
   - 23: {fileID: 32170697}
+  - 114: {fileID: 32170701}
   m_Layer: 0
   m_Name: Cube
   m_TagString: Untagged
@@ -143,6 +144,17 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
+--- !u!114 &32170701
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 32170696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c3db9b533a11df4fbd3b0f7ad3939e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!28 &408928027
 Texture2D:
   m_ObjectHideFlags: 0
@@ -206,6 +218,7 @@ GameObject:
   - 92: {fileID: 637350629}
   - 124: {fileID: 637350628}
   - 81: {fileID: 637350627}
+  - 114: {fileID: 637350632}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -274,6 +287,20 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
+--- !u!114 &637350632
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 637350626}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11cf2d8a8b58e1a418f67c37dce8a95d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxConcurrentTouch: 5
+  raycastDistance: Infinity
+  enableDebugMode: 0
 --- !u!21 &781087519
 Material:
   serializedVersion: 3
