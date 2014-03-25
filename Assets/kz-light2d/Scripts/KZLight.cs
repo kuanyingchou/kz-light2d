@@ -75,23 +75,21 @@ public class KZLight : MonoBehaviour {
         Initialize();
 
         UpdatePosition();
-        UpdateMesh();
+        hits = CircularScan(light.transform.position, 
+                direction, angleOfView, radius);
+        UpdateLightMesh(mesh, light.transform.position, hits);
         //if(debug) UnitTest();
     }
 
     public virtual void LateUpdate() {
         if(dynamicUpdate && IsDirty()) Reinitialize();
         UpdatePosition();
-        UpdateMesh();
+        hits = CircularScan(light.transform.position, 
+                direction, angleOfView, radius);
+        UpdateLightMesh(mesh, light.transform.position, hits);
     }
 
     //[ private
-
-    private void UpdateMesh() {
-        Vector3 pos = light.transform.position;
-        hits = CircularScan(pos, direction, angleOfView, radius);
-        UpdateLightMesh(mesh, pos, hits);
-    }
 
     protected bool IsDirty() {
         if(oldColor != color ||
@@ -233,7 +231,7 @@ public class KZLight : MonoBehaviour {
         }
     }
 
-    private List<RaycastHit> CircularScan(
+    protected List<RaycastHit> CircularScan(
             Vector3 center, 
             float angleDeg, 
             float viewDeg, 

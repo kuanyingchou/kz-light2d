@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 public class KZTexLight : KZLight {
-    public bool enableShadowTexture = true;
+    public bool enableShadow = true;
     public int iteration = 0;
     public float overflow= 0.05f;
     public float shadowBrightness = 1;
@@ -11,8 +11,7 @@ public class KZTexLight : KZLight {
     public int edgeCutout = 1; //for blurry edges
 
     public override void LateUpdate() {
-        if(dynamicUpdate && IsDirty()) Reinitialize();
-        UpdatePosition();
+        base.LateUpdate(); //: may run unnecessary code
         lightMaterial.mainTexture = CreateTexture();
     }
     public override Vector3[] CreateVertices(
@@ -68,7 +67,7 @@ public class KZTexLight : KZLight {
 
     public override KZTexture Filter(KZTexture texture) {
         texture = base.Filter(texture);
-        if(enableShadowTexture) {
+        if(enableShadow) {
             ApplyShadow(texture, hits, radius, overflow, shadowBrightness);
         }
         if(enableSoftEdges) {
