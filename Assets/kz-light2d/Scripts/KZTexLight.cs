@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
+/*
 public class KZTexLight : KZLight {
     public bool enableShadow = true;
     public int iteration = 0;
@@ -123,3 +124,4 @@ public class KZTexLight : KZLight {
     }
 
 }
+*/

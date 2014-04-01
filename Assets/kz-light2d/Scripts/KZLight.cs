@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
+[ExecuteInEditMode]
 public class KZLight : MonoBehaviour {
     public bool debug = true;
 
@@ -22,7 +23,7 @@ public class KZLight : MonoBehaviour {
     //}
 
     //[ basic properties
-    /*[Range(-180, 180)]*/ public float direction = 0; 
+    ///*[Range(-180, 180)]*/ public float direction = 0; 
     /*[Range(0, 720)]*/ public float angleOfView = 90;
     /*[Range(1, 20)]*/ public float radius = 10; 
     
@@ -54,6 +55,9 @@ public class KZLight : MonoBehaviour {
     public int textureHeight = 128;
     private int oldTextureHeight;
     public int numberOfRays = 128;
+    public int numberOfDuplicates = 16;
+    public float span = 3;
+    public float fuzz = .01f;
     //public float rayDensity = 1;
 
     //public int eventThreshold = 5; //: TODO
@@ -75,8 +79,7 @@ public class KZLight : MonoBehaviour {
         Initialize();
 
         UpdatePosition();
-        hits = CircularScan(transform.position, 
-                direction, angleOfView, radius);
+        hits = CircularScan(angleOfView, radius);
         UpdateLightMesh(mesh, transform.position, hits);
         //if(debug) UnitTest();
     }
@@ -84,8 +87,7 @@ public class KZLight : MonoBehaviour {
     public virtual void LateUpdate() {
         if(dynamicUpdate && IsDirty()) Reinitialize();
         UpdatePosition();
-        hits = CircularScan(transform.position, 
-                direction, angleOfView, radius);
+        hits = CircularScan(angleOfView, radius);
         UpdateLightMesh(mesh, transform.position, hits);
     }
 
@@ -131,7 +133,6 @@ public class KZLight : MonoBehaviour {
 
     public void OnRenderObject() {
         lightMaterial.SetPass(0);
-        int numberOfDuplicates = 32;
 
         /*
         //[ circle
@@ -151,25 +152,20 @@ public class KZLight : MonoBehaviour {
         */
 
         //[ rotation
-        float span = 3;
         float angle = -span/2;
         Quaternion q = transform.rotation;
-        //Vector3 o = transform.position;
         for(int i=0; i<numberOfDuplicates; i++) {
+            transform.rotation = Quaternion.identity;
             transform.RotateAround(
                     transform.position, Vector3.forward, angle);
-            //for(int j=0; j<5; j++) {
-            //    transform.Translate(new Vector3(0, .2f, 0));
-                Graphics.DrawMeshNow(
-                    mesh, 
-                    transform.position, 
-                    transform.rotation
-                );
-            //}
+            Graphics.DrawMeshNow(
+                mesh, 
+                transform.position, 
+                transform.rotation
+            );
             angle += span / (numberOfDuplicates-1); //TODO: > 1
-            transform.rotation = q;
-            //transform.position = o;
         }
+        transform.rotation = q;
     }
 
     protected void Reinitialize() {
@@ -223,7 +219,7 @@ public class KZLight : MonoBehaviour {
     public virtual KZTexture Filter(KZTexture texture) {
         if(enableTint) ApplyColorWithTint(texture, color, tint, alpha);
         else ApplyColor(texture, color, alpha);
-        if(enableFallOff) ApplyGradient(texture, alpha);
+        if(enableFallOff) ApplyGradient(texture, alpha, fuzz);
         if(enablePerlin) ApplyPerlin(texture, perlinStart, perlinScale);
         return texture;
     }
@@ -252,12 +248,15 @@ public class KZLight : MonoBehaviour {
                 
     }
 
-    private static void ApplyGradient(KZTexture texture, float maxAlpha) {
+    private static void ApplyGradient(KZTexture texture, 
+            float maxAlpha, float fuzz) {
         for(int y=0; y<texture.height; y++) {
             float a = maxAlpha - ((float)y/(texture.height-1) * maxAlpha);
             for(int x=0; x<texture.width; x++) {
                 Color c = texture.GetPixel(x, y);
-                texture.SetPixel(x, y, new Color(c.r, c.g, c.b, c.a * a));
+                texture.SetPixel(x, y, new Color(c.r, c.g, c.b, c.a * (a + 
+                Random.Range(-fuzz, fuzz))));
+                //texture.SetPixel(x, y, new Color(c.r, c.g, c.b, c.a * a));
             }
         }
     }
@@ -276,23 +275,21 @@ public class KZLight : MonoBehaviour {
         }
     }
 
-    protected List<RaycastHit> CircularScan(
-            Vector3 center, 
-            float angleDeg, 
-            float viewDeg, 
-            float radius) {
+    protected List<RaycastHit> CircularScan(float viewDeg, float radius) {
 
         hits.Clear();
         RaycastHit hit;
 
-        float angleRad = angleDeg * Mathf.Deg2Rad;
+        //float angleRad = angleDeg * Mathf.Deg2Rad;
+        Vector3 center = transform.position;
         float viewRad = viewDeg * Mathf.Deg2Rad;
-        float start = angleRad - viewRad * .5f;
-        float end = angleRad + viewRad * .5f;
+        float start = - viewRad * .5f;
+        float end = viewRad * .5f;
+        float rotation = transform.rotation.eulerAngles.z * Mathf.Deg2Rad;
 
         float angle = end;
         for(int i=0; i<numberOfRays; i++) {
-            Vector3 d= ToVector3(angle); 
+            Vector3 d= ToVector3(rotation + angle); 
             if(Physics.Raycast(center, d, out hit, 
                     Mathf.Abs(radius))) {
                 hits.Add(hit);
@@ -393,8 +390,7 @@ public class KZLight : MonoBehaviour {
         }
 
         //mesh.Clear();
-        Vector3[] vertices = CreateVertices(
-                hits, pos, direction, angleOfView, radius);
+        Vector3[] vertices = CreateVertices(hits, pos, angleOfView, radius);
         mesh.vertices = vertices;
         mesh.triangles = CreateTriangles(vertices);
         mesh.normals = CreateNormals(vertices);
@@ -419,7 +415,7 @@ public class KZLight : MonoBehaviour {
     }
     public virtual Vector3[] CreateVertices(
             List<RaycastHit> hits, Vector3 pos, 
-            float direction, float angleOfView, 
+            float angleOfView, 
             float range) {
 
         int numTriangles = hits.Count - 1;
