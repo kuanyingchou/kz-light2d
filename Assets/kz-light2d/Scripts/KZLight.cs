@@ -75,18 +75,18 @@ public class KZLight : MonoBehaviour {
         Initialize();
 
         UpdatePosition();
-        hits = CircularScan(light.transform.position, 
+        hits = CircularScan(transform.position, 
                 direction, angleOfView, radius);
-        UpdateLightMesh(mesh, light.transform.position, hits);
+        UpdateLightMesh(mesh, transform.position, hits);
         //if(debug) UnitTest();
     }
 
     public virtual void LateUpdate() {
         if(dynamicUpdate && IsDirty()) Reinitialize();
         UpdatePosition();
-        hits = CircularScan(light.transform.position, 
+        hits = CircularScan(transform.position, 
                 direction, angleOfView, radius);
-        UpdateLightMesh(mesh, light.transform.position, hits);
+        UpdateLightMesh(mesh, transform.position, hits);
     }
 
     //[ private
@@ -111,6 +111,7 @@ public class KZLight : MonoBehaviour {
     }
 
     private void Initialize() {
+    /*
         if(light != null) {
             GameObject.DestroyImmediate(light);
         }
@@ -118,13 +119,57 @@ public class KZLight : MonoBehaviour {
         light.name = "Light";
         light.transform.parent = transform;
         light.layer = gameObject.layer; 
-
         MeshRenderer renderer = light.AddComponent<MeshRenderer>();
 
         MeshFilter filter = light.AddComponent<MeshFilter>();
         mesh = filter.mesh;
+    */
         //mesh.MarkDynamic();
+        mesh = new Mesh();
         Reinitialize();
+    }
+
+    public void OnRenderObject() {
+        lightMaterial.SetPass(0);
+        int numberOfDuplicates = 32;
+
+        /*
+        //[ circle
+        float angle = 0;
+        float d = .2f;
+        for(int i=0; i<numberOfDuplicates; i++) {
+            Vector3 diff = new Vector3(
+                    Mathf.Cos(angle), 
+                    Mathf.Sin(angle), 
+                    0) * d;
+            Graphics.DrawMeshNow(
+                mesh, 
+                transform.position + diff, 
+                transform.rotation);
+            angle += TWO_PI / numberOfDuplicates;
+        }
+        */
+
+        //[ rotation
+        float span = 3;
+        float angle = -span/2;
+        Quaternion q = transform.rotation;
+        //Vector3 o = transform.position;
+        for(int i=0; i<numberOfDuplicates; i++) {
+            transform.RotateAround(
+                    transform.position, Vector3.forward, angle);
+            //for(int j=0; j<5; j++) {
+            //    transform.Translate(new Vector3(0, .2f, 0));
+                Graphics.DrawMeshNow(
+                    mesh, 
+                    transform.position, 
+                    transform.rotation
+                );
+            //}
+            angle += span / (numberOfDuplicates-1); //TODO: > 1
+            transform.rotation = q;
+            //transform.position = o;
+        }
     }
 
     protected void Reinitialize() {
@@ -132,7 +177,7 @@ public class KZLight : MonoBehaviour {
             throw new System.Exception("Please assign a material!");
         }
         lightMaterial = new Material(lightMaterial);
-        light.GetComponent<MeshRenderer>().material = lightMaterial;
+        // light.GetComponent<MeshRenderer>().material = lightMaterial;
 
         texture = new KZTexture(textureWidth, textureHeight);
         texture2d = new Texture2D(textureWidth, textureHeight, 
@@ -155,7 +200,7 @@ public class KZLight : MonoBehaviour {
     }
     
     protected void UpdatePosition() {
-        light.transform.localPosition = Vector3.zero;
+        //light.transform.localPosition = Vector3.zero;
     }
 
     /*

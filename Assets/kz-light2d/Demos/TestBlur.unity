@@ -355,9 +355,6 @@ MonoBehaviour:
   textureWidth: 128
   textureHeight: 128
   numberOfRays: 128
-  numberOfDuplicates: 2
-  duplicateDiff: .5
-  duplicateZDiff: .100000001
 --- !u!4 &1494581739
 Transform:
   m_ObjectHideFlags: 0
@@ -412,9 +409,6 @@ MonoBehaviour:
   textureWidth: 128
   textureHeight: 128
   numberOfRays: 128
-  numberOfDuplicates: 1
-  duplicateDiff: .100000001
-  duplicateZDiff: .100000001
 --- !u!4 &1604864936
 Transform:
   m_ObjectHideFlags: 0

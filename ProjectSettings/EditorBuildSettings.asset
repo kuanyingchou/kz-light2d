@@ -19,5 +19,7 @@ EditorBuildSettings:
     path: Assets/kz-light2d/Demos/TestBasic.unity
   - enabled: 0
     path: Assets/kz-light2d/Demos/TestBlur.unity
-  - enabled: 1
+  - enabled: 0
     path: Assets/kz-light2d/Demos/TestTextureShadow.unity
+  - enabled: 1
+    path: Assets/kz-light2d/Demos/TestBlur.unity
