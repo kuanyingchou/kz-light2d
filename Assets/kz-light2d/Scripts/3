@@ -55,10 +55,9 @@ public class KZLight : MonoBehaviour {
     public int textureHeight = 128;
     private int oldTextureHeight;
     public int numberOfRays = 128;
-    public int numberOfOverlays = 16;
-    public float focus = 3;
-    public float textureNoise = 0; //.01f;
-    private float oldTextureNoise = 0; //.01f;
+    public int numberOfDuplicates = 16;
+    public float span = 3;
+    public float fuzz = .01f;
     //public float rayDensity = 1;
 
     //public int eventThreshold = 5; //: TODO
@@ -105,8 +104,7 @@ public class KZLight : MonoBehaviour {
            oldEnableFallOff != enableFallOff ||
            oldEnablePerlin != enablePerlin ||
            oldPerlinScale != perlinScale || 
-           oldPerlinStart != perlinStart ||
-           oldTextureNoise != textureNoise) {
+           oldPerlinStart != perlinStart) {
             //Debug.Log("is dirty!");
             return true;
         } else {
@@ -129,7 +127,7 @@ public class KZLight : MonoBehaviour {
         mesh = filter.mesh;
     */
         //mesh.MarkDynamic();
-        if(mesh==null) mesh = new Mesh();
+        mesh = new Mesh();
         Reinitialize();
     }
 
@@ -140,7 +138,7 @@ public class KZLight : MonoBehaviour {
         //[ circle
         float angle = 0;
         float d = .2f;
-        for(int i=0; i<numberOfOverlays; i++) {
+        for(int i=0; i<numberOfDuplicates; i++) {
             Vector3 diff = new Vector3(
                     Mathf.Cos(angle), 
                     Mathf.Sin(angle), 
@@ -149,14 +147,14 @@ public class KZLight : MonoBehaviour {
                 mesh, 
                 transform.position + diff, 
                 transform.rotation);
-            angle += TWO_PI / numberOfOverlays;
+            angle += TWO_PI / numberOfDuplicates;
         }
         */
 
         //[ rotation
-        float angle = (numberOfOverlays == 1)?0:-focus/2;
+        float angle = -span/2;
         Quaternion q = transform.rotation;
-        for(int i=0; i<numberOfOverlays; i++) {
+        for(int i=0; i<numberOfDuplicates; i++) {
             transform.rotation = Quaternion.identity;
             transform.RotateAround(
                     transform.position, Vector3.forward, angle);
@@ -165,7 +163,7 @@ public class KZLight : MonoBehaviour {
                 transform.position, 
                 transform.rotation
             );
-            angle += focus / (numberOfOverlays-1);
+            angle += span / (numberOfDuplicates-1); //TODO: > 1
         }
         transform.rotation = q;
     }
@@ -195,7 +193,6 @@ public class KZLight : MonoBehaviour {
         oldEnablePerlin = enablePerlin;
         oldPerlinScale = perlinScale;
         oldPerlinStart = perlinStart;
-        oldTextureNoise = textureNoise;
     }
     
     protected void UpdatePosition() {
@@ -222,12 +219,7 @@ public class KZLight : MonoBehaviour {
     public virtual KZTexture Filter(KZTexture texture) {
         if(enableTint) ApplyColorWithTint(texture, color, tint, alpha);
         else ApplyColor(texture, color, alpha);
-        if(enableFallOff) ApplyGradient(texture, alpha, textureNoise);
-        //[ vertical blur
-        //float k = 1.0f/5;
-        //texture = KZTexture.BoxBlur(texture, 
-        //        new float[,] {{k}, {k}, {k}, {k}, {k}});
-        //]
+        if(enableFallOff) ApplyGradient(texture, alpha, fuzz);
         if(enablePerlin) ApplyPerlin(texture, perlinStart, perlinScale);
         return texture;
     }
@@ -257,16 +249,18 @@ public class KZLight : MonoBehaviour {
     }
 
     private static void ApplyGradient(KZTexture texture, 
-            float maxAlpha, float textureNoise) {
+            float maxAlpha, float fuzz) {
         for(int y=0; y<texture.height; y++) {
             float a = maxAlpha - ((float)y/(texture.height-1) * maxAlpha);
             for(int x=0; x<texture.width; x++) {
                 Color c = texture.GetPixel(x, y);
                 texture.SetPixel(x, y, new Color(c.r, c.g, c.b, c.a * (a + 
-                Random.Range(-textureNoise, textureNoise))));
+                Random.Range(-fuzz, fuzz))));
                 //texture.SetPixel(x, y, new Color(c.r, c.g, c.b, c.a * a));
             }
         }
+        texture = KZTexture.BoxBlur(texture, 
+                new float[,] {{1.0f/3, 1.0f/3, 1.0f/3}});
     }
     private static void ApplyPerlin(
             KZTexture texture, float perlinStart, float perlinScale) {
@@ -450,7 +444,7 @@ public class KZLight : MonoBehaviour {
         float x = 1;
         int index = 0;
         int hitIndex = 1;
-        //float focus = uvs.Length / 3; 
+        //float span = uvs.Length / 3; 
         float y = hits[0].distance / range;
         while(index < uvs.Length) {
             uvs[index++] = new Vector2(x, 0);
