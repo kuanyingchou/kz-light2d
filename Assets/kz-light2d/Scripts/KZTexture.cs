@@ -3,6 +3,9 @@ using System.Collections;
 
 public class KZTexture {
     public static Color transparent = new Color(1, 1, 1, 0);
+
+    private int _width;
+    private int _height;
     private Color[] pixels; 
 
     public int width {
@@ -11,8 +14,6 @@ public class KZTexture {
     public int height {
         get { return _height; }
     }
-    private int _width;
-    private int _height;
 
     public KZTexture(int w, int h) {
         pixels = new Color[w * h];
@@ -103,7 +104,7 @@ public class KZTexture {
             int x, int y, float[,] kernel) {
 
         Color color = new Color(0, 0, 0, 0);
-        Color defaultColor = GetColor(src.GetPixel(x, y), 0);
+        Color defaultColor = KZColor.GetColor(src.GetPixel(x, y), 0);
         int index = 0;
         int row = kernel.GetLength(0);
         int col = kernel.GetLength(1);
@@ -112,7 +113,7 @@ public class KZTexture {
 
         for(int i=0; i<row; i++) {
             for(int j=0; j<col; j++) {
-                Color c = Mul(
+                Color c = KZColor.Mul(
                         src.GetPixel(x - halfCol + j, 
                                      y - halfRow + i, defaultColor),
                         kernel[i, j]);
@@ -125,30 +126,6 @@ public class KZTexture {
         //Debug.Log(color);
         dest.SetPixel(x, y, color);
     }
-
-    private static Color Add(params Color[] colors) {
-        float r = 0, g = 0, b = 0, a = 0;
-        for(int i=0; i<colors.Length; i++) {
-            r += colors[i].r;
-            g += colors[i].g;
-            b += colors[i].b;
-            a += colors[i].a;
-        }
-        return new Color(r, g, b, a);
-    }
-    private static Color Add(Color lhs, Color rhs) {
-        return new Color(
-                Mathf.Min(1, lhs.r + rhs.r), 
-                Mathf.Min(1, lhs.g + rhs.g), 
-                Mathf.Min(1, lhs.b + rhs.b), 
-                Mathf.Min(1, lhs.a + rhs.a));
-    }
-
-    private static Color Mul(Color input, float f) {
-        return new Color(
-                input.r * f, input.g * f, input.b * f, input.a * f);
-    }
-
 /*
     private static Color GetPixel(KZTexture texture, int x, int y) {
         if(x < 0 || x >= texture.width ||
@@ -156,14 +133,5 @@ public class KZTexture {
         return texture.GetPixel(x, y);
     }
 */
-    public static Color GetTint(Color a, Color b, float tintFactor) {
-        return new Color(a.r + (b.r - a.r) * tintFactor,
-                         a.g + (b.g - a.g) * tintFactor,
-                         a.b + (b.b - a.b) * tintFactor,
-                         a.a + (b.a - a.a) * tintFactor);
 
-    }
-    public static Color GetColor(Color c, float alphaOverride) {
-        return new Color(c.r, c.g, c.b, alphaOverride);
-    }
 }

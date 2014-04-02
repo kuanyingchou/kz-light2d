@@ -2,10 +2,10 @@
 using System.Collections;
 
 public class TestEvent : MonoBehaviour {
-    public void EnterLight() {
-        Debug.Log("enter light");
+    public void EnterLight(GameObject o) {
+        Debug.Log("enter light: "+o.name);
     }
-    public void LeaveLight() {
-        Debug.Log("leave light");
+    public void LeaveLight(GameObject o) {
+        Debug.Log("leave light "+o.name);
     }
 }

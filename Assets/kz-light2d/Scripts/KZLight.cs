@@ -7,6 +7,48 @@ using System.Linq;
 public class KZLight : MonoBehaviour {
     public bool debug = true;
 
+    //[ basic properties
+    ///*[Range(-180, 180)]*/ public float direction = 0; 
+    /*[Range(0, 720)]*/ public float angleOfView = 90;
+    /*[Range(1, 20)]*/ public float radius = 10; 
+    
+    public Material lightMaterial;
+    private Material oldLightMaterial;
+    public Color color = new Color(1, 1, 1, 1); 
+    public Color tint = new Color(1, .94f, .59f, 1);
+
+    /*[Range(0, 1)]*/ public float alpha = .5f;
+
+    public bool enableTint = false;
+    public bool enableFallOff = true;
+
+    public bool enablePerlin = false;
+    public float perlinScale = 5;
+    public float perlinStart = 5;
+
+    //[ advanced properties
+    public int textureWidth = 128;
+    public int textureHeight = 128;
+    public int numberOfRays = 128;
+    public int numberOfOverlays = 16;
+    public float focus = 3;
+    public float textureNoise = 0; //.01f;
+    //public float rayDensity = 1;
+
+    //public int eventThreshold = 5; //: TODO
+
+    //[ private 
+    private Color oldColor; //used for live update
+    private Color oldTint; //used for live update
+    private float oldAlpha;
+    private bool oldEnableTint;
+    private bool oldEnableFallOff;
+    private bool oldEnablePerlin;
+    private float oldPerlinScale;
+    private float oldPerlinStart;
+    private int oldTextureWidth;
+    private int oldTextureHeight;
+    private float oldTextureNoise = 0; //.01f;
     ////TODO
     //class Property<T> {
     //    private static List<Property<>> properties = new List<Property<>>();
@@ -22,48 +64,6 @@ public class KZLight : MonoBehaviour {
     //    }
     //}
 
-    //[ basic properties
-    ///*[Range(-180, 180)]*/ public float direction = 0; 
-    /*[Range(0, 720)]*/ public float angleOfView = 90;
-    /*[Range(1, 20)]*/ public float radius = 10; 
-    
-    public Material lightMaterial;
-    private Material oldLightMaterial;
-    public Color color = new Color(1, 1, 1, 1); 
-    private Color oldColor; //used for live update
-    public Color tint = new Color(1, .94f, .59f, 1);
-    private Color oldTint; //used for live update
-
-    /*[Range(0, 1)]*/ public float alpha = .5f;
-    private float oldAlpha;
-
-    public bool enableTint = false;
-    private bool oldEnableTint;
-    public bool enableFallOff = true;
-    private bool oldEnableFallOff;
-
-    public bool enablePerlin = false;
-    private bool oldEnablePerlin;
-    public float perlinScale = 5;
-    private float oldPerlinScale;
-    public float perlinStart = 5;
-    private float oldPerlinStart;
-
-    //[ advanced properties
-    public int textureWidth = 128;
-    private int oldTextureWidth;
-    public int textureHeight = 128;
-    private int oldTextureHeight;
-    public int numberOfRays = 128;
-    public int numberOfOverlays = 16;
-    public float focus = 3;
-    public float textureNoise = 0; //.01f;
-    private float oldTextureNoise = 0; //.01f;
-    //public float rayDensity = 1;
-
-    //public int eventThreshold = 5; //: TODO
-
-    //[ private 
     protected bool dynamicUpdate = true;
     protected static float TWO_PI = Mathf.PI * 2;
     protected Mesh mesh;
@@ -115,43 +115,18 @@ public class KZLight : MonoBehaviour {
     }
 
     private void Initialize() {
-    /*
-        if(light != null) {
-            GameObject.DestroyImmediate(light);
-        }
-        light = new GameObject();
-        light.name = "Light";
-        light.transform.parent = transform;
-        light.layer = gameObject.layer; 
-        MeshRenderer renderer = light.AddComponent<MeshRenderer>();
-
-        MeshFilter filter = light.AddComponent<MeshFilter>();
-        mesh = filter.mesh;
-    */
         //mesh.MarkDynamic();
         if(mesh==null) mesh = new Mesh();
         Reinitialize();
     }
 
     public void OnRenderObject() {
-        lightMaterial.SetPass(0);
+        //RenderWithTranslation();
+        RenderWithRotation();
+    }
 
-        /*
-        //[ circle
-        float angle = 0;
-        for(int i=0; i<numberOfOverlays; i++) {
-            Vector3 diff = new Vector3(
-                    Mathf.Cos(angle), 
-                    Mathf.Sin(angle), 
-                    0) * focus;
-            Graphics.DrawMeshNow(
-                mesh, 
-                transform.position + diff, 
-                Quaternion.identity);
-            angle += TWO_PI / numberOfOverlays;
-        }
-        */
-        //[ rotation
+    private void RenderWithRotation() {
+        lightMaterial.SetPass(0);
         float angle = (numberOfOverlays == 1)?0:-focus/2;
         Quaternion q = transform.rotation;
         for(int i=0; i<numberOfOverlays; i++) {
@@ -166,6 +141,21 @@ public class KZLight : MonoBehaviour {
             angle += focus / (numberOfOverlays-1);
         }
         transform.rotation = q;
+    }
+    private void RenderWithTranslation() {
+        lightMaterial.SetPass(0);
+        float angle = 0;
+        for(int i=0; i<numberOfOverlays; i++) {
+            Vector3 diff = new Vector3(
+                    Mathf.Cos(angle), 
+                    Mathf.Sin(angle), 
+                    0) * focus;
+            Graphics.DrawMeshNow(
+                mesh, 
+                transform.position + diff, 
+                Quaternion.identity);
+            angle += TWO_PI / numberOfOverlays;
+        }
     }
 
     protected void Reinitialize() {
@@ -244,7 +234,7 @@ public class KZLight : MonoBehaviour {
     private static void ApplyColorWithTint(
             KZTexture texture, Color c, Color tint, float alphaScale) {
         for(int y=0; y<texture.height; y++) {
-            Color t = KZTexture.GetTint(
+            Color t = KZColor.GetTint(
                     c, tint, (float)y / (texture.height-1));
             for(int x=0; x<texture.width; x++) {
                 texture.SetPixel(x, y, 
@@ -331,11 +321,11 @@ public class KZLight : MonoBehaviour {
     }
 
     private void SendLeave(GameObject obj) {
-        if(obj) obj.SendMessage("LeaveLight", 
+        if(obj) obj.SendMessage("LeaveLight", gameObject,
                 SendMessageOptions.DontRequireReceiver);
     }
     private void SendEnter(GameObject obj) {
-        if(obj) obj.SendMessage("EnterLight", 
+        if(obj) obj.SendMessage("EnterLight", gameObject,
                 SendMessageOptions.DontRequireReceiver);
     }
     private void HandleEvents() {
