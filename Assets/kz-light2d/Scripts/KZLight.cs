@@ -139,20 +139,18 @@ public class KZLight : MonoBehaviour {
         /*
         //[ circle
         float angle = 0;
-        float d = .2f;
         for(int i=0; i<numberOfOverlays; i++) {
             Vector3 diff = new Vector3(
                     Mathf.Cos(angle), 
                     Mathf.Sin(angle), 
-                    0) * d;
+                    0) * focus;
             Graphics.DrawMeshNow(
                 mesh, 
                 transform.position + diff, 
-                transform.rotation);
+                Quaternion.identity);
             angle += TWO_PI / numberOfOverlays;
         }
         */
-
         //[ rotation
         float angle = (numberOfOverlays == 1)?0:-focus/2;
         Quaternion q = transform.rotation;
