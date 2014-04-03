@@ -5,15 +5,13 @@ using System.Linq;
 
 [ExecuteInEditMode]
 public class KZLight : MonoBehaviour {
-    public bool debug = true;
+    public bool debug = false;
 
     //[ basic properties
-    ///*[Range(-180, 180)]*/ public float direction = 0; 
     /*[Range(0, 720)]*/ public float angleOfView = 90;
     /*[Range(1, 20)]*/ public float radius = 10; 
     
     public Material lightMaterial;
-    private Material oldLightMaterial;
     public Color color = new Color(1, 1, 1, 1); 
     public Color tint = new Color(1, .94f, .59f, 1);
 
@@ -21,7 +19,6 @@ public class KZLight : MonoBehaviour {
 
     public bool enableTint = false;
     public bool enableFallOff = true;
-
     public bool enablePerlin = false;
     public float perlinScale = 5;
     public float perlinStart = 5;
@@ -38,6 +35,7 @@ public class KZLight : MonoBehaviour {
     //public int eventThreshold = 5; //: TODO
 
     //[ private 
+    private Material oldLightMaterial;
     private Color oldColor; //used for live update
     private Color oldTint; //used for live update
     private float oldAlpha;
@@ -69,8 +67,6 @@ public class KZLight : MonoBehaviour {
     protected Mesh mesh;
     protected GameObject light;
     protected List<RaycastHit> hits = new List<RaycastHit>();
-    protected KZTexture texture;
-    protected Texture2D texture2d;
     protected Dictionary<GameObject, int> seenObjects= 
             new Dictionary<GameObject, int>();
     private Dictionary<GameObject, int> lastSeenObjects= 
@@ -121,8 +117,14 @@ public class KZLight : MonoBehaviour {
     }
 
     public void OnRenderObject() {
-        //RenderWithTranslation();
-        RenderWithRotation();
+        if(IsVisible()) {
+            //RenderWithTranslation();
+            RenderWithRotation();
+        }
+    }
+
+    private bool IsVisible() {
+        return (Camera.current.cullingMask & (1 << gameObject.layer)) != 0;
     }
 
     private void RenderWithRotation() {
@@ -165,13 +167,17 @@ public class KZLight : MonoBehaviour {
         lightMaterial = new Material(lightMaterial);
         // light.GetComponent<MeshRenderer>().material = lightMaterial;
 
-        texture = new KZTexture(textureWidth, textureHeight);
-        texture2d = new Texture2D(textureWidth, textureHeight, 
+        KZTexture texture = new KZTexture(textureWidth, textureHeight);
+        Texture2D texture2d = new Texture2D(textureWidth, textureHeight, 
                 TextureFormat.ARGB32, false);
                 //TextureFormat.RGB24, false);
         texture2d.wrapMode = TextureWrapMode.Clamp;
-        lightMaterial.mainTexture = CreateTexture();
+        lightMaterial.mainTexture = CreateTexture(texture, texture2d);
 
+        UpdateProperties();
+    }
+
+    private void UpdateProperties() {
         oldColor = color;
         oldTint = tint;
         oldTextureWidth = textureWidth;
@@ -211,19 +217,19 @@ public class KZLight : MonoBehaviour {
         if(enableTint) ApplyColorWithTint(texture, color, tint, alpha);
         else ApplyColor(texture, color, alpha);
         if(enableFallOff) ApplyGradient(texture, alpha, textureNoise);
+        /*
         //[ vertical blur
-        //float k = 1.0f/5;
-        //texture = KZTexture.BoxBlur(texture, 
-        //        new float[,] {{k}, {k}, {k}, {k}, {k}});
-        //]
+        float k = 1.0f/5;
+        texture = KZTexture.BoxBlur(texture, 
+                //new float[,] {{k}, {k}, {k}, {k}, {k}});
+                new float[,] {{k, k, k, k, k}});
+        */ 
         if(enablePerlin) ApplyPerlin(texture, perlinStart, perlinScale);
         return texture;
     }
 
-    protected Texture2D CreateTexture() {
-        //[ use a smaller width here to create a blurry effect 
-        texture2d = Filter(texture).ToTexture2D(texture2d);
-        return texture2d;
+    protected Texture2D CreateTexture(KZTexture t, Texture2D t2d) {
+        return Filter(t).ToTexture2D(t2d);
     }
 
     private static void ApplyColor(
