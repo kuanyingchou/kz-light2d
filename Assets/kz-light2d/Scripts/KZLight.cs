@@ -57,7 +57,8 @@ public class KZLight : MonoBehaviour {
     public int numberOfRays = 128;
     public int numberOfDuplicates = 16;
     public float span = 3;
-    public float fuzz = .01f;
+    public float noiseIntensity = .01f;
+    private float oldNoiseIntensity;
     //public float rayDensity = 1;
 
     //public int eventThreshold = 5; //: TODO
@@ -104,7 +105,8 @@ public class KZLight : MonoBehaviour {
            oldEnableFallOff != enableFallOff ||
            oldEnablePerlin != enablePerlin ||
            oldPerlinScale != perlinScale || 
-           oldPerlinStart != perlinStart) {
+           oldPerlinStart != perlinStart ||
+           oldNoiseIntensity != noiseIntensity) {
             //Debug.Log("is dirty!");
             return true;
         } else {
@@ -193,6 +195,7 @@ public class KZLight : MonoBehaviour {
         oldEnablePerlin = enablePerlin;
         oldPerlinScale = perlinScale;
         oldPerlinStart = perlinStart;
+        oldNoiseIntensity = noiseIntensity;
     }
     
     protected void UpdatePosition() {
@@ -219,8 +222,9 @@ public class KZLight : MonoBehaviour {
     public virtual KZTexture Filter(KZTexture texture) {
         if(enableTint) ApplyColorWithTint(texture, color, tint, alpha);
         else ApplyColor(texture, color, alpha);
-        if(enableFallOff) ApplyGradient(texture, alpha, fuzz);
+        if(enableFallOff) ApplyGradient(texture, alpha);
         if(enablePerlin) ApplyPerlin(texture, perlinStart, perlinScale);
+        ApplyNoise(texture, noiseIntensity);
         return texture;
     }
 
@@ -249,17 +253,26 @@ public class KZLight : MonoBehaviour {
     }
 
     private static void ApplyGradient(KZTexture texture, 
-            float maxAlpha, float fuzz) {
+            float maxAlpha) {
         for(int y=0; y<texture.height; y++) {
             float a = maxAlpha - ((float)y/(texture.height-1) * maxAlpha);
             for(int x=0; x<texture.width; x++) {
                 Color c = texture.GetPixel(x, y);
-                texture.SetPixel(x, y, new Color(c.r, c.g, c.b, c.a * (a + 
-                Random.Range(-fuzz, fuzz))));
-                //texture.SetPixel(x, y, new Color(c.r, c.g, c.b, c.a * a));
+                texture.SetPixel(x, y, new Color(c.r, c.g, c.b, c.a * a));
             }
         }
     }
+
+    private static void ApplyNoise(KZTexture texture, float intensity) {
+        for(int y=0; y<texture.height; y++) {
+            for(int x=0; x<texture.width; x++) {
+                Color c = texture.GetPixel(x, y);
+                texture.SetPixel(x, y, new Color(
+                        c.r, c.g, c.b, c.a + Random.Range(-intensity, intensity)));
+            }
+        }
+    }
+
     private static void ApplyPerlin(
             KZTexture texture, float perlinStart, float perlinScale) {
         for(int x=0; x<texture.width; x++) {
