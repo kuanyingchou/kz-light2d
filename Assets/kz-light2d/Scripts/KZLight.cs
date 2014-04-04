@@ -29,7 +29,7 @@ public class KZLight : MonoBehaviour {
     public int numberOfRays = 128;
     public int numberOfOverlays = 16;
     public float focus = 3;
-    public float textureNoise = 0; //.01f;
+    public float noiseIntensity = .01f;
     //public float rayDensity = 1;
 
     //public int eventThreshold = 5; //: TODO
@@ -46,7 +46,7 @@ public class KZLight : MonoBehaviour {
     private float oldPerlinStart;
     private int oldTextureWidth;
     private int oldTextureHeight;
-    private float oldTextureNoise = 0; //.01f;
+    private float oldNoiseIntensity;
     ////TODO
     //class Property<T> {
     //    private static List<Property<>> properties = new List<Property<>>();
@@ -102,7 +102,7 @@ public class KZLight : MonoBehaviour {
            oldEnablePerlin != enablePerlin ||
            oldPerlinScale != perlinScale || 
            oldPerlinStart != perlinStart ||
-           oldTextureNoise != textureNoise) {
+           oldNoiseIntensity != noiseIntensity) {
             //Debug.Log("is dirty!");
             return true;
         } else {
@@ -164,7 +164,7 @@ public class KZLight : MonoBehaviour {
         if(lightMaterial == null) {
             throw new System.Exception("Please assign a material!");
         }
-        lightMaterial = new Material(lightMaterial);
+        //lightMaterial = new Material(lightMaterial);
         // light.GetComponent<MeshRenderer>().material = lightMaterial;
 
         KZTexture texture = new KZTexture(textureWidth, textureHeight);
@@ -189,7 +189,7 @@ public class KZLight : MonoBehaviour {
         oldEnablePerlin = enablePerlin;
         oldPerlinScale = perlinScale;
         oldPerlinStart = perlinStart;
-        oldTextureNoise = textureNoise;
+        oldNoiseIntensity = noiseIntensity;
     }
     
     protected void UpdatePosition() {
@@ -216,7 +216,7 @@ public class KZLight : MonoBehaviour {
     public virtual KZTexture Filter(KZTexture texture) {
         if(enableTint) ApplyColorWithTint(texture, color, tint, alpha);
         else ApplyColor(texture, color, alpha);
-        if(enableFallOff) ApplyGradient(texture, alpha, textureNoise);
+        if(enableFallOff) ApplyGradient(texture, alpha);
         /*
         //[ vertical blur
         float k = 1.0f/5;
@@ -225,6 +225,7 @@ public class KZLight : MonoBehaviour {
                 new float[,] {{k, k, k, k, k}});
         */ 
         if(enablePerlin) ApplyPerlin(texture, perlinStart, perlinScale);
+        ApplyNoise(texture, noiseIntensity);
         return texture;
     }
 
@@ -251,17 +252,27 @@ public class KZLight : MonoBehaviour {
     }
 
     private static void ApplyGradient(KZTexture texture, 
-            float maxAlpha, float textureNoise) {
+            float maxAlpha) {
         for(int y=0; y<texture.height; y++) {
             float a = maxAlpha - ((float)y/(texture.height-1) * maxAlpha);
             for(int x=0; x<texture.width; x++) {
                 Color c = texture.GetPixel(x, y);
-                texture.SetPixel(x, y, new Color(c.r, c.g, c.b, c.a * (a + 
-                Random.Range(-textureNoise, textureNoise))));
-                //texture.SetPixel(x, y, new Color(c.r, c.g, c.b, c.a * a));
+                texture.SetPixel(x, y, new Color(c.r, c.g, c.b, c.a * a));
             }
         }
     }
+
+    private static void ApplyNoise(KZTexture texture, float intensity) {
+        if(intensity == 0) return;
+        for(int y=0; y<texture.height; y++) {
+            for(int x=0; x<texture.width; x++) {
+                Color c = texture.GetPixel(x, y);
+                texture.SetPixel(x, y, new Color(
+                        c.r, c.g, c.b, c.a + Random.Range(-intensity, intensity)));
+            }
+        }
+    }
+
     private static void ApplyPerlin(
             KZTexture texture, float perlinStart, float perlinScale) {
         for(int x=0; x<texture.width; x++) {
@@ -358,7 +369,7 @@ public class KZLight : MonoBehaviour {
         }
     }
 
-    //>>> didn't see much improvement, just moved burden from gpu to cpu
+    //TODO didn't see much improvement, just moved burden from gpu to cpu
     private List<RaycastHit> SimplifyHits(List<RaycastHit> hits) {
         List<RaycastHit> reducedHits = new List<RaycastHit>();
         if(hits.Count > 2) {
