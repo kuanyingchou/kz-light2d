@@ -11,4 +11,5 @@ A 2D light and shadow effect for Unity3D
 - Preview in Scene, no need to click Play
 - No special shader required
 - No extra camera required
+- [Experimental] Supports light fall-off and fuzzy light
 
